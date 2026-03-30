@@ -22,7 +22,7 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to fetch fixtures:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch fixtures' },
+      { error: 'Failed to fetch fixtures', detail: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

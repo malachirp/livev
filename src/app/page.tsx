@@ -26,13 +26,19 @@ export default function CreateGamePage() {
 
   useEffect(() => {
     fetch('/api/fixtures')
-      .then(res => res.json())
+      .then(async res => {
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.detail || json.error || 'Failed to load fixtures');
+        }
+        return json;
+      })
       .then(data => {
         setData(data);
         setLoading(false);
       })
-      .catch(() => {
-        setError('Failed to load fixtures');
+      .catch((err) => {
+        setError(err.message || 'Failed to load fixtures');
         setLoading(false);
       });
   }, []);
@@ -97,7 +103,7 @@ export default function CreateGamePage() {
       </div>
 
       {/* League filters */}
-      {data && (
+      {data && data.availableLeagueIds.length > 0 && (
         <LeagueFilter
           leagues={data.leagues}
           selected={selectedLeague}
