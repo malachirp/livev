@@ -1,0 +1,146 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Header from '@/components/Header';
+import PitchPicker from '@/components/PitchPicker';
+import type { NormalizedPlayer, PickData, RoomData } from '@/types';
+
+export default function PickTeamPage() {
+  const router = useRouter();
+  const params = useParams();
+  const code = params.code as string;
+
+  const [players, setPlayers] = useState<NormalizedPlayer[]>([]);
+  const [room, setRoom] = useState<RoomData | null>(null);
+  const [existingPicks, setExistingPicks] = useState<PickData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Fetch room data first
+        const roomRes = await fetch(`/api/rooms/${code}`);
+        const roomData = await roomRes.json();
+
+        if (!roomData.room) {
+          setError('Room not found');
+          setLoading(false);
+          return;
+        }
+
+        setRoom(roomData.room);
+
+        // Load existing picks if user has them
+        if (roomData.currentPlayer?.hasPicks) {
+          const playerData = roomData.room.players.find(
+            (p: any) => p.id === roomData.currentPlayer.id
+          );
+          if (playerData?.picks) {
+            setExistingPicks(playerData.picks);
+          }
+        }
+
+        // Fetch squads
+        const squadsRes = await fetch(`/api/squads/${roomData.room.fixtureId}`);
+        const squadsData = await squadsRes.json();
+        setPlayers(squadsData.players || []);
+
+        setLoading(false);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load');
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [code]);
+
+  const handleSubmit = async (picks: PickData[]) => {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/rooms/${code}/pick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ picks }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to save picks');
+      }
+
+      router.push(`/room/${code}`);
+    } catch (err: any) {
+      setError(err.message);
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col flex-1">
+        <Header showBack backHref={`/room/${code}`} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+            <span className="text-sm text-white/40">Loading squads...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !room) {
+    return (
+      <div className="flex flex-col flex-1">
+        <Header showBack backHref="/" />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center">
+            <p className="text-live-red text-sm">{error}</p>
+            <button onClick={() => router.push('/')} className="mt-3 text-sm text-accent font-semibold">
+              Go home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col flex-1">
+      <Header showBack backHref={`/room/${code}`} />
+
+      {/* Title */}
+      <div className="px-4 pt-4 pb-2">
+        <h1 className="text-lg font-black text-white">Pick Your Team</h1>
+        {room && (
+          <p className="text-xs text-white/40 mt-0.5">
+            {room.homeTeamName} vs {room.awayTeamName}
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="px-4 py-2">
+          <p className="text-live-red text-xs bg-live-red/10 rounded-lg px-3 py-2">{error}</p>
+        </div>
+      )}
+
+      {room && (
+        <PitchPicker
+          players={players}
+          homeTeamId={room.homeTeamId}
+          awayTeamId={room.awayTeamId}
+          existingPicks={existingPicks}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+        />
+      )}
+    </div>
+  );
+}

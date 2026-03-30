@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  fixtureId    Int
+  leagueId     Int
+  homeTeamId   Int
+  awayTeamId   Int
+  homeTeamName String
+  awayTeamName String
+  matchDate    DateTime
+  createdAt    DateTime @default(now())
+  players      Player[]
+
+  @@index([fixtureId])
+}
+
+model Player {
+  id           String   @id @default(cuid())
+  roomId       String
+  room         Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  displayName  String
+  sessionToken String   @unique
+  isCreator    Boolean  @default(false)
+  totalPoints  Int      @default(0)
+  picks        Pick[]
+  createdAt    DateTime @default(now())
+
+  @@unique([roomId, displayName])
+  @@index([roomId])
+  @@index([sessionToken])
+}
+
+model Pick {
+  id                 String @id @default(cuid())
+  playerId           String
+  player             Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  footballPlayerId   Int
+  footballPlayerName String
+  teamId             Int
+  position           String
+  slotIndex          Int
+  points             Int    @default(0)
+  pointsBreakdown    Json?
+
+  @@unique([playerId, slotIndex])
+  @@index([playerId])
+  @@index([footballPlayerId])
+}
+
+model MatchCache {
+  id          String   @id @default(cuid())
+  fixtureId   Int      @unique
+  status      String   @default("NS")
+  homeScore   Int?
+  awayScore   Int?
+  minute      Int?
+  events      Json?
+  playerStats Json?
+  updatedAt   DateTime @updatedAt
+}
