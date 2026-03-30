@@ -95,7 +95,17 @@ export default function LiveRoomPage() {
       pollLive();
       return;
     } else {
-      interval = 300_000; // 5min pre-match
+      // Smart pre-match polling: faster as kickoff approaches
+      const kickoff = new Date(room.matchDate).getTime();
+      const msUntilKickoff = kickoff - Date.now();
+
+      if (msUntilKickoff <= 0) {
+        interval = 30_000; // Should be live soon, poll frequently
+      } else if (msUntilKickoff <= 30 * 60 * 1000) {
+        interval = 60_000; // Within 30min: every minute
+      } else {
+        interval = 300_000; // More than 30min out: every 5min
+      }
     }
 
     pollRef.current = setInterval(pollLive, interval);

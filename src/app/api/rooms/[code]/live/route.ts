@@ -7,78 +7,51 @@ export const dynamic = 'force-dynamic';
 
 const CACHE_TTL_MS = 25_000; // 25 seconds
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { code: string } }
-) {
-  try {
-    const room = await prisma.room.findUnique({
-      where: { code: params.code },
-      include: {
-        players: {
-          include: { picks: true },
-        },
-      },
-    });
+// Simple in-memory lock to prevent thundering herd on the same fixture
+const refreshLocks = new Map<number, Promise<void>>();
 
-    if (!room) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-    }
+async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamId: number) {
+  // If already refreshing this fixture, wait for it
+  const existing = refreshLocks.get(fixtureId);
+  if (existing) {
+    await existing;
+    return;
+  }
 
-    // Check if cache needs refresh
-    let matchCache = await prisma.matchCache.findUnique({
-      where: { fixtureId: room.fixtureId },
-    });
+  const refreshPromise = (async () => {
+    try {
+      const fixture = await getFixtureDetails(fixtureId);
+      const status = fixture.fixture.status.short;
+      const homeScore = fixture.goals.home;
+      const awayScore = fixture.goals.away;
+      const minute = fixture.fixture.status.elapsed;
 
-    const now = new Date();
-    const isStale = !matchCache || (now.getTime() - matchCache.updatedAt.getTime()) > CACHE_TTL_MS;
-    const isLiveOrRecent = !matchCache || ['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
+      let events: any[] = [];
+      let playerStats: any[] = [];
 
-    if (isStale && isLiveOrRecent) {
-      try {
-        // Fetch fresh data from API-Football
-        const fixture = await getFixtureDetails(room.fixtureId);
-        const status = fixture.fixture.status.short;
-        const homeScore = fixture.goals.home;
-        const awayScore = fixture.goals.away;
-        const minute = fixture.fixture.status.elapsed;
+      const matchStarted = !['NS', 'TBD', 'PST', 'CANC', 'ABD'].includes(status);
+      if (matchStarted) {
+        [events, playerStats] = await Promise.all([
+          getFixtureEvents(fixtureId).catch(() => []),
+          getFixturePlayerStats(fixtureId).catch(() => []),
+        ]);
+      }
 
-        let events: any[] = [];
-        let playerStats: any[] = [];
+      // Upsert match cache
+      await prisma.matchCache.upsert({
+        where: { fixtureId },
+        update: { status, homeScore, awayScore, minute, events, playerStats },
+        create: { fixtureId, status, homeScore, awayScore, minute, events, playerStats },
+      });
 
-        // Only fetch events/stats if match has started
-        const matchStarted = !['NS', 'TBD', 'PST', 'CANC', 'ABD'].includes(status);
-        if (matchStarted) {
-          [events, playerStats] = await Promise.all([
-            getFixtureEvents(room.fixtureId).catch(() => []),
-            getFixturePlayerStats(room.fixtureId).catch(() => []),
-          ]);
-        }
-
-        // Upsert match cache
-        matchCache = await prisma.matchCache.upsert({
-          where: { fixtureId: room.fixtureId },
-          update: {
-            status,
-            homeScore,
-            awayScore,
-            minute,
-            events,
-            playerStats,
-          },
-          create: {
-            fixtureId: room.fixtureId,
-            status,
-            homeScore,
-            awayScore,
-            minute,
-            events,
-            playerStats,
-          },
+      // Recalculate points for ALL rooms using this fixture
+      if (matchStarted && events.length > 0) {
+        const rooms = await prisma.room.findMany({
+          where: { fixtureId },
+          include: { players: { include: { picks: true } } },
         });
 
-        // Recalculate points for all picks if match has started
-        if (matchStarted && events.length > 0) {
+        for (const room of rooms) {
           for (const player of room.players) {
             let playerTotalPoints = 0;
 
@@ -110,13 +83,51 @@ export async function GET(
             });
           }
         }
+      }
+    } finally {
+      refreshLocks.delete(fixtureId);
+    }
+  })();
+
+  refreshLocks.set(fixtureId, refreshPromise);
+  await refreshPromise;
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: { code: string } }
+) {
+  try {
+    const room = await prisma.room.findUnique({
+      where: { code: params.code },
+    });
+
+    if (!room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
+    // Check if cache needs refresh
+    let matchCache = await prisma.matchCache.findUnique({
+      where: { fixtureId: room.fixtureId },
+    });
+
+    const now = new Date();
+    const isStale = !matchCache || (now.getTime() - matchCache.updatedAt.getTime()) > CACHE_TTL_MS;
+    const isLiveOrRecent = !matchCache || ['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
+
+    if (isStale && isLiveOrRecent) {
+      try {
+        await refreshMatchData(room.fixtureId, room.homeTeamId, room.awayTeamId);
+        // Re-read cache after refresh
+        matchCache = await prisma.matchCache.findUnique({
+          where: { fixtureId: room.fixtureId },
+        });
       } catch (apiError) {
         console.error('API-Football fetch failed, using cached data:', apiError);
-        // Continue with existing cached data
       }
     }
 
-    // Re-fetch room with updated scores
+    // Fetch this room's leaderboard
     const updatedRoom = await prisma.room.findUnique({
       where: { code: params.code },
       include: {
