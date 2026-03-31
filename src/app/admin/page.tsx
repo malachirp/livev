@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const ADMIN_PASSWORD = 'admin';
+const DEFAULT_ADMIN_PASSWORD = 'admin';
 
 interface AdminRoom {
   id: string;
@@ -53,31 +53,46 @@ export default function AdminPage() {
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [adminPassword, setAdminPassword] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'live' | 'finished'>('all');
 
   // Check sessionStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('livev_admin') === 'true') {
+      const storedPw = sessionStorage.getItem('livev_admin_pw') || '';
+      setAdminPassword(storedPw);
       setAuthenticated(true);
     }
   }, []);
 
-  function handleLogin() {
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      setPasswordError(false);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('livev_admin', 'true');
+  async function handleLogin() {
+    // Verify password against server
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        headers: { 'x-admin-password': password },
+      });
+      if (res.ok) {
+        setAuthenticated(true);
+        setPasswordError(false);
+        setAdminPassword(password);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('livev_admin', 'true');
+          sessionStorage.setItem('livev_admin_pw', password);
+        }
+      } else {
+        setPasswordError(true);
       }
-    } else {
+    } catch {
       setPasswordError(true);
     }
   }
 
   async function fetchRooms() {
     try {
-      const res = await fetch('/api/admin/rooms');
+      const res = await fetch('/api/admin/rooms', {
+        headers: { 'x-admin-password': adminPassword },
+      });
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setRooms(data.rooms);
@@ -89,14 +104,17 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (authenticated) fetchRooms();
-  }, [authenticated]);
+    if (authenticated && adminPassword) fetchRooms();
+  }, [authenticated, adminPassword]);
 
   async function handleDelete(roomId: string, roomCode: string) {
     if (!confirm(`Delete game ${roomCode}? This cannot be undone.`)) return;
     setDeleting(roomId);
     try {
-      const res = await fetch(`/api/admin/rooms?id=${roomId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/rooms?id=${roomId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminPassword },
+      });
       if (!res.ok) throw new Error('Failed to delete');
       setRooms(prev => prev.filter(r => r.id !== roomId));
     } catch {

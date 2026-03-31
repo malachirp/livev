@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+function checkAdminAuth(): boolean {
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+  const headersList = headers();
+  const authHeader = headersList.get('x-admin-password');
+  return authHeader === adminPassword;
+}
+
+export async function GET(request: Request) {
+  if (!checkAdminAuth()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const rooms = await prisma.room.findMany({
       include: {
@@ -54,6 +66,10 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  if (!checkAdminAuth()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const roomId = searchParams.get('id');

@@ -28,15 +28,18 @@ export async function POST(
       where: { fixtureId: room.fixtureId },
     });
 
-    if (matchCache && !['NS'].includes(matchCache.status)) {
+    // Allow picks only when match hasn't started (NS or TBD)
+    if (matchCache && !['NS', 'TBD'].includes(matchCache.status)) {
       return NextResponse.json(
         { error: 'Cannot pick team after match has started' },
         { status: 400 }
       );
     }
 
-    // Fallback: if no cache exists, check if matchDate has passed
-    if (!matchCache && new Date(room.matchDate) <= new Date()) {
+    // Fallback: if no cache exists or cache is stale, also check matchDate
+    // Use a buffer of 2 minutes to account for cache staleness
+    const kickoffBuffer = 2 * 60 * 1000;
+    if (new Date(room.matchDate).getTime() + kickoffBuffer <= Date.now() && (!matchCache || matchCache.status === 'NS')) {
       return NextResponse.json(
         { error: 'Cannot pick team after kick off time' },
         { status: 400 }
@@ -88,6 +91,15 @@ export async function POST(
     if (Object.values(teamCounts).some(count => count > 3)) {
       return NextResponse.json(
         { error: 'Max 3 players from one team' },
+        { status: 400 }
+      );
+    }
+
+    // Validate no duplicate football players
+    const playerIds = picks.map(p => p.footballPlayerId);
+    if (new Set(playerIds).size !== playerIds.length) {
+      return NextResponse.json(
+        { error: 'Cannot pick the same player twice' },
         { status: 400 }
       );
     }

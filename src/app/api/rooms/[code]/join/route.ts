@@ -15,6 +15,10 @@ export async function POST(
       return NextResponse.json({ error: 'Display name is required' }, { status: 400 });
     }
 
+    if (displayName.trim().length > 20) {
+      return NextResponse.json({ error: 'Display name must be 20 characters or less' }, { status: 400 });
+    }
+
     const room = await prisma.room.findUnique({
       where: { code: params.code },
     });
@@ -71,6 +75,7 @@ export async function POST(
 
     response.cookies.set('livev_session', sessionToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7,

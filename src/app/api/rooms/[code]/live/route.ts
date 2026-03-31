@@ -121,7 +121,7 @@ export async function GET(
 
     const now = new Date();
     const isStale = !matchCache || (now.getTime() - matchCache.updatedAt.getTime()) > CACHE_TTL_MS;
-    const isLiveOrRecent = !matchCache || ['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
+    const isLiveOrRecent = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
 
     if (isStale && isLiveOrRecent) {
       try {

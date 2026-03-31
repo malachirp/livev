@@ -64,6 +64,13 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
         .filter(p => p.position === SLOTS[activeSlot].position)
         .filter(p => canPickFromTeam(p.teamId, activeSlot))
         .filter(p => {
+          // Exclude players already picked in other slots
+          const pickedIds = picks
+            .filter((pick, i) => pick !== null && i !== activeSlot)
+            .map(pick => pick!.footballPlayerId);
+          return !pickedIds.includes(p.id);
+        })
+        .filter(p => {
           if (!searchQuery) return true;
           return p.name.toLowerCase().includes(searchQuery.toLowerCase());
         })

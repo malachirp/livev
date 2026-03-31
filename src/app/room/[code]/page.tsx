@@ -90,8 +90,8 @@ export default function LiveRoomPage() {
     const status = match.status;
     let interval: number;
 
-    if (isMatchLive(status) || status === 'HT') {
-      interval = 30_000; // 30s during live match
+    if (isMatchLive(status)) {
+      interval = 30_000; // 30s during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
       // Final poll then stop
       pollLive();

@@ -141,6 +141,13 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName,
                     </div>
                   );
                 })}
+                {/* Captain multiplier line */}
+                {isCaptain && (
+                  <div className="flex justify-between items-center py-0.5 mt-1 pt-1 border-t border-white/5">
+                    <span className="text-[10px] text-points-gold font-bold">Captain ×2</span>
+                    <span className="text-[10px] font-bold text-points-gold">×2</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

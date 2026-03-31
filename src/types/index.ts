@@ -227,7 +227,7 @@ export interface LiveData {
 export type MatchStatus = 'NS' | '1H' | 'HT' | '2H' | 'ET' | 'FT' | 'AET' | 'PEN' | 'SUSP' | 'INT' | 'PST' | 'CANC' | 'ABD' | 'AWD' | 'WO' | 'LIVE';
 
 export function isMatchLive(status: string): boolean {
-  return ['1H', '2H', 'ET', 'LIVE'].includes(status);
+  return ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(status);
 }
 
 export function isMatchFinished(status: string): boolean {
