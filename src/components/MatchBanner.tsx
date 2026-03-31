@@ -12,6 +12,7 @@ interface Props {
   awayTeamName: string;
   homeTeamLogo?: string;
   awayTeamLogo?: string;
+  venue?: string | null;
   homeScore: number | null;
   awayScore: number | null;
   status: string;
@@ -21,7 +22,7 @@ interface Props {
 
 export default function MatchBanner({
   homeTeamId, awayTeamId, homeTeamName, awayTeamName,
-  homeTeamLogo, awayTeamLogo,
+  homeTeamLogo, awayTeamLogo, venue,
   homeScore, awayScore, status, minute, matchDate,
 }: Props) {
   const homeColours = getTeamColours(homeTeamId);
@@ -106,6 +107,13 @@ export default function MatchBanner({
           </span>
         </div>
       </div>
+
+      {/* Venue */}
+      {venue && (
+        <div className="text-center pb-3 -mt-1">
+          <span className="text-[10px] text-white/30">{venue}</span>
+        </div>
+      )}
     </div>
   );
 }

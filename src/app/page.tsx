@@ -72,6 +72,7 @@ export default function CreateGamePage() {
           awayTeamName: selectedFixture.teams.away.name,
           homeTeamLogo: selectedFixture.teams.home.logo,
           awayTeamLogo: selectedFixture.teams.away.logo,
+          venue: selectedFixture.fixture.venue?.name || null,
           matchDate: selectedFixture.fixture.date,
           displayName: displayName.trim(),
         }),

@@ -7,6 +7,11 @@ export interface ApiFixture {
     timezone: string;
     date: string;
     timestamp: number;
+    venue?: {
+      id: number | null;
+      name: string | null;
+      city: string | null;
+    };
     status: {
       long: string;
       short: string; // NS, 1H, HT, 2H, ET, FT, etc.
@@ -178,6 +183,7 @@ export interface RoomData {
   awayTeamName: string;
   homeTeamLogo?: string | null;
   awayTeamLogo?: string | null;
+  venue?: string | null;
   matchDate: string;
   players: PlayerData[];
 }

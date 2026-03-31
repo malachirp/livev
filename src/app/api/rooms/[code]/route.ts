@@ -48,6 +48,7 @@ export async function GET(
         awayTeamName: room.awayTeamName,
         homeTeamLogo: room.homeTeamLogo,
         awayTeamLogo: room.awayTeamLogo,
+        venue: room.venue,
         matchDate: room.matchDate.toISOString(),
         players: room.players.map(p => ({
           id: p.id,

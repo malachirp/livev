@@ -202,6 +202,7 @@ export default function LiveRoomPage() {
         awayTeamName={room.awayTeamName}
         homeTeamLogo={room.homeTeamLogo || undefined}
         awayTeamLogo={room.awayTeamLogo || undefined}
+        venue={room.venue}
         homeScore={match.homeScore}
         awayScore={match.awayScore}
         status={match.status}

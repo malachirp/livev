@@ -165,7 +165,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
       {/* Captain hint */}
       <div className="px-4 pt-3 pb-1">
         <p className="text-[10px] text-white/30 text-center">
-          Tap a player on the pitch to make them captain (C) for 2x points
+          Tap a player on the pitch to make them captain (C) for 1.5x points
         </p>
       </div>
 
