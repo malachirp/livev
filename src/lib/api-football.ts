@@ -68,9 +68,15 @@ function getCached<T>(cache: Map<string | number, CacheEntry<T>>, key: string | 
 // We include current and previous season to handle the transition period
 export const LEAGUES: League[] = [
   { id: 39, name: 'Premier League', season: 2025 },
+  { id: 40, name: 'Championship', season: 2025 },
+  { id: 41, name: 'League One', season: 2025 },
+  { id: 42, name: 'League Two', season: 2025 },
   { id: 2, name: 'Champions League', season: 2025 },
   { id: 3, name: 'Europa League', season: 2025 },
   { id: 45, name: 'FA Cup', season: 2025 },
+  { id: 140, name: 'La Liga', season: 2025 },
+  { id: 78, name: 'Bundesliga', season: 2025 },
+  { id: 94, name: 'Primeira Liga', season: 2025 },
   { id: 10, name: 'Friendlies', season: 2026 },
   { id: 32, name: 'WC Qualifiers Europe', season: 2026 },
   { id: 1, name: 'World Cup', season: 2026 },
@@ -79,9 +85,15 @@ export const LEAGUES: League[] = [
 // Fallback seasons to try if primary returns no results
 const FALLBACK_SEASONS: Record<number, number> = {
   39: 2024,
+  40: 2024,
+  41: 2024,
+  42: 2024,
   2: 2024,
   3: 2024,
   45: 2024,
+  140: 2024,
+  78: 2024,
+  94: 2024,
   10: 2025,
   32: 2024,
 };
