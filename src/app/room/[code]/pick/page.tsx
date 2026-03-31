@@ -164,6 +164,8 @@ export default function PickTeamPage() {
           players={players}
           homeTeamId={room.homeTeamId}
           awayTeamId={room.awayTeamId}
+          homeTeamName={room.homeTeamName}
+          awayTeamName={room.awayTeamName}
           existingPicks={existingPicks}
           onSubmit={handleSubmit}
           submitting={submitting}

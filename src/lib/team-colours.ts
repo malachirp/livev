@@ -1,149 +1,304 @@
-// Comprehensive team kit colours database
-// Two lookup strategies:
-//   1. By team ID (reliable for clubs whose IDs are well-known)
-//   2. By team name (reliable for national teams, used as fallback)
+// Team kit colours — keyed purely by team name (lowercased).
+// Name-based lookup is used because it matches exactly what API-Football returns
+// in fixture responses, eliminating ID uncertainty entirely.
 //
-// getTeamColours(id, name?) checks ID first, then name, then returns default.
+// getTeamColours(teamId, teamName?) — ignores teamId, looks up by name.
+// teamId kept in signature for backwards compatibility with callers.
 
 type Colours = { primary: string; secondary: string };
 
-// ============================================================
-// ID-BASED MAP — club teams with well-known API-Football IDs
-// ============================================================
-const TEAM_COLOURS_BY_ID: Record<number, Colours> = {
+const TEAM_COLOURS: Record<string, Colours> = {
 
-  // PREMIER LEAGUE 2025-26 (league 39)
-  33: { primary: '#DA291C', secondary: '#FFFFFF' },   // Manchester United
-  34: { primary: '#6CABDD', secondary: '#FFFFFF' },   // Manchester City
-  40: { primary: '#C8102E', secondary: '#FFFFFF' },   // Liverpool
-  42: { primary: '#EF0107', secondary: '#FFFFFF' },   // Arsenal
-  47: { primary: '#132257', secondary: '#FFFFFF' },   // Tottenham Hotspur
-  49: { primary: '#034694', secondary: '#FFFFFF' },   // Chelsea
-  35: { primary: '#7A263A', secondary: '#59C2E6' },   // West Ham United
-  66: { primary: '#670E36', secondary: '#95BFE5' },   // Aston Villa
-  36: { primary: '#FDB913', secondary: '#231F20' },   // Wolverhampton Wanderers
-  45: { primary: '#003399', secondary: '#FFFFFF' },   // Everton
-  46: { primary: '#003090', secondary: '#FDBE11' },   // Leicester City
-  50: { primary: '#1B458F', secondary: '#C4122E' },   // Crystal Palace
-  51: { primary: '#0057B8', secondary: '#FFFFFF' },   // Brighton & Hove Albion
-  52: { primary: '#DD0000', secondary: '#FFFFFF' },   // Nottingham Forest
-  55: { primary: '#E30613', secondary: '#FFFFFF' },   // Brentford
-  63: { primary: '#000000', secondary: '#FFFFFF' },   // Fulham
-  41: { primary: '#D71920', secondary: '#FFFFFF' },   // Southampton
-  38: { primary: '#241F20', secondary: '#FFFFFF' },   // Newcastle United
-  76: { primary: '#3A64A3', secondary: '#FFFFFF' },   // Ipswich Town
-  1359: { primary: '#DA291C', secondary: '#000000' }, // AFC Bournemouth
+  // ============================================================
+  // PREMIER LEAGUE 2025-26
+  // ============================================================
+  'arsenal': { primary: '#EF0107', secondary: '#FFFFFF' },
+  'aston villa': { primary: '#670E36', secondary: '#95BFE5' },
+  'bournemouth': { primary: '#DA291C', secondary: '#000000' },
+  'afc bournemouth': { primary: '#DA291C', secondary: '#000000' },
+  'brentford': { primary: '#E30613', secondary: '#FFFFFF' },
+  'brighton': { primary: '#0057B8', secondary: '#FFFFFF' },
+  'brighton & hove albion': { primary: '#0057B8', secondary: '#FFFFFF' },
+  'brighton and hove albion': { primary: '#0057B8', secondary: '#FFFFFF' },
+  'chelsea': { primary: '#034694', secondary: '#FFFFFF' },
+  'crystal palace': { primary: '#1B458F', secondary: '#C4122E' },
+  'everton': { primary: '#003399', secondary: '#FFFFFF' },
+  'fulham': { primary: '#FFFFFF', secondary: '#000000' },
+  'ipswich': { primary: '#3A64A3', secondary: '#FFFFFF' },
+  'ipswich town': { primary: '#3A64A3', secondary: '#FFFFFF' },
+  'leicester': { primary: '#003090', secondary: '#FDBE11' },
+  'leicester city': { primary: '#003090', secondary: '#FDBE11' },
+  'liverpool': { primary: '#C8102E', secondary: '#FFFFFF' },
+  'manchester city': { primary: '#6CABDD', secondary: '#FFFFFF' },
+  'manchester united': { primary: '#DA291C', secondary: '#FFFFFF' },
+  'newcastle': { primary: '#241F20', secondary: '#FFFFFF' },
+  'newcastle united': { primary: '#241F20', secondary: '#FFFFFF' },
+  'nottingham forest': { primary: '#DD0000', secondary: '#FFFFFF' },
+  'southampton': { primary: '#D71920', secondary: '#FFFFFF' },
+  'tottenham': { primary: '#132257', secondary: '#FFFFFF' },
+  'tottenham hotspur': { primary: '#132257', secondary: '#FFFFFF' },
+  'west ham': { primary: '#7A263A', secondary: '#59C2E6' },
+  'west ham united': { primary: '#7A263A', secondary: '#59C2E6' },
+  'wolverhampton wanderers': { primary: '#FDB913', secondary: '#231F20' },
+  'wolves': { primary: '#FDB913', secondary: '#231F20' },
 
-  // EFL CHAMPIONSHIP (league 40)
-  67: { primary: '#FFFFFF', secondary: '#1D428A' },   // Leeds United
-  62: { primary: '#6C1D45', secondary: '#99D6EA' },   // Burnley
-  71: { primary: '#FFF200', secondary: '#00A650' },   // Norwich City
-  57: { primary: '#EE2737', secondary: '#FFFFFF' },   // Sheffield United
-  74: { primary: '#EB172B', secondary: '#FFFFFF' },   // Sunderland
-  68: { primary: '#DC002E', secondary: '#FFFFFF' },   // Middlesbrough
-  73: { primary: '#122F67', secondary: '#FFFFFF' },   // West Bromwich Albion
-  60: { primary: '#FBEE23', secondary: '#000000' },   // Watford
-  64: { primary: '#FFFFFF', secondary: '#000000' },   // Swansea City
-  65: { primary: '#F5A623', secondary: '#000000' },   // Hull City
-  56: { primary: '#0066B2', secondary: '#FFFFFF' },   // Sheffield Wednesday
-  70: { primary: '#FFFFFF', secondary: '#000000' },   // Derby County
-  59: { primary: '#003DA5', secondary: '#FFFFFF' },   // Blackburn Rovers
-  753: { primary: '#001489', secondary: '#FFFFFF' },  // Portsmouth
-  1130: { primary: '#F5D130', secondary: '#002D62' }, // Oxford United
-  746: { primary: '#62B5E5', secondary: '#FFFFFF' },  // Coventry City
-  1196: { primary: '#E21836', secondary: '#FFFFFF' }, // Bristol City
-  740: { primary: '#001D5E', secondary: '#FFFFFF' },  // Millwall
-  743: { primary: '#FFFFFF', secondary: '#1E3A5F' },  // Preston North End
-  754: { primary: '#003E2F', secondary: '#FFFFFF' },  // Plymouth Argyle
-  58: { primary: '#1D5BA4', secondary: '#FFFFFF' },   // QPR
-  78: { primary: '#E03A3E', secondary: '#FFFFFF' },   // Stoke City
+  // ============================================================
+  // EFL CHAMPIONSHIP 2025-26
+  // ============================================================
+  'burnley': { primary: '#6C1D45', secondary: '#99D6EA' },
+  'cardiff city': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'cardiff': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'coventry city': { primary: '#62B5E5', secondary: '#FFFFFF' },
+  'coventry': { primary: '#62B5E5', secondary: '#FFFFFF' },
+  'derby county': { primary: '#FFFFFF', secondary: '#000000' },
+  'hull city': { primary: '#F5A623', secondary: '#000000' },
+  'hull': { primary: '#F5A623', secondary: '#000000' },
+  'leeds united': { primary: '#FFFFFF', secondary: '#1D428A' },
+  'leeds': { primary: '#FFFFFF', secondary: '#1D428A' },
+  'luton town': { primary: '#F78E1E', secondary: '#FFFFFF' },
+  'luton': { primary: '#F78E1E', secondary: '#FFFFFF' },
+  'middlesbrough': { primary: '#DC002E', secondary: '#FFFFFF' },
+  'boro': { primary: '#DC002E', secondary: '#FFFFFF' },
+  'millwall': { primary: '#001D5E', secondary: '#FFFFFF' },
+  'norwich city': { primary: '#FFF200', secondary: '#00A650' },
+  'norwich': { primary: '#FFF200', secondary: '#00A650' },
+  'oxford united': { primary: '#F5D130', secondary: '#002D62' },
+  'oxford': { primary: '#F5D130', secondary: '#002D62' },
+  'plymouth argyle': { primary: '#003E2F', secondary: '#FFFFFF' },
+  'plymouth': { primary: '#003E2F', secondary: '#FFFFFF' },
+  'portsmouth': { primary: '#001489', secondary: '#FFFFFF' },
+  'preston north end': { primary: '#FFFFFF', secondary: '#1E3A5F' },
+  'preston': { primary: '#FFFFFF', secondary: '#1E3A5F' },
+  'qpr': { primary: '#1D5BA4', secondary: '#FFFFFF' },
+  'queens park rangers': { primary: '#1D5BA4', secondary: '#FFFFFF' },
+  'sheffield united': { primary: '#EE2737', secondary: '#FFFFFF' },
+  'sheffield wednesday': { primary: '#0066B2', secondary: '#FFFFFF' },
+  'stoke city': { primary: '#E03A3E', secondary: '#FFFFFF' },
+  'stoke': { primary: '#E03A3E', secondary: '#FFFFFF' },
+  'sunderland': { primary: '#EB172B', secondary: '#FFFFFF' },
+  'swansea city': { primary: '#FFFFFF', secondary: '#000000' },
+  'swansea': { primary: '#FFFFFF', secondary: '#000000' },
+  'watford': { primary: '#FBEE23', secondary: '#000000' },
+  'west bromwich albion': { primary: '#122F67', secondary: '#FFFFFF' },
+  'west brom': { primary: '#122F67', secondary: '#FFFFFF' },
 
-  // LA LIGA (league 140)
-  85: { primary: '#FFFFFF', secondary: '#FEBE10' },   // Real Madrid
-  529: { primary: '#A50044', secondary: '#004D98' },  // FC Barcelona
-  530: { primary: '#CB3524', secondary: '#FFFFFF' },  // Atletico Madrid
-  531: { primary: '#EE2523', secondary: '#FFFFFF' },  // Athletic Bilbao
-  532: { primary: '#FFFFFF', secondary: '#000000' },  // Valencia CF
-  533: { primary: '#FFCD00', secondary: '#005BAA' },  // Villarreal CF
-  534: { primary: '#003DA5', secondary: '#FFFFFF' },  // Deportivo Alaves
-  535: { primary: '#D91A2A', secondary: '#0A1E5C' },  // CA Osasuna
-  536: { primary: '#FFFFFF', secondary: '#D20515' },  // Sevilla FC
-  538: { primary: '#8AC3EE', secondary: '#FFFFFF' },  // RC Celta Vigo
-  540: { primary: '#007FC8', secondary: '#FFFFFF' },  // RCD Espanyol
-  541: { primary: '#004170', secondary: '#DA291C' },  // Paris Saint Germain
-  543: { primary: '#00954C', secondary: '#FFFFFF' },  // Real Betis
-  548: { primary: '#003DA5', secondary: '#FFFFFF' },  // Real Sociedad
-  727: { primary: '#FFDD00', secondary: '#003DA5' },  // UD Las Palmas
-  728: { primary: '#CC2635', secondary: '#FFFFFF' },  // Girona FC
-  798: { primary: '#E03C31', secondary: '#000000' },  // RCD Mallorca
-  546: { primary: '#005999', secondary: '#FFFFFF' },  // Getafe CF
-  542: { primary: '#6B3FA0', secondary: '#FFFFFF' },  // Real Valladolid
+  // ============================================================
+  // EFL LEAGUE ONE 2025-26
+  // ============================================================
+  'barnsley': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'birmingham city': { primary: '#0000FF', secondary: '#FFFFFF' },
+  'birmingham': { primary: '#0000FF', secondary: '#FFFFFF' },
+  'blackpool': { primary: '#F68712', secondary: '#FFFFFF' },
+  'bolton wanderers': { primary: '#FFFFFF', secondary: '#003DA5' },
+  'bolton': { primary: '#FFFFFF', secondary: '#003DA5' },
+  'bristol rovers': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'burton albion': { primary: '#F5A623', secondary: '#000000' },
+  'burton': { primary: '#F5A623', secondary: '#000000' },
+  'cambridge united': { primary: '#F5A623', secondary: '#000000' },
+  'cambridge': { primary: '#F5A623', secondary: '#000000' },
+  'charlton athletic': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'charlton': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'exeter city': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'exeter': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'huddersfield town': { primary: '#0E63AD', secondary: '#FFFFFF' },
+  'huddersfield': { primary: '#0E63AD', secondary: '#FFFFFF' },
+  'leyton orient': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'lincoln city': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'lincoln': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'northampton town': { primary: '#A81B23', secondary: '#FFFFFF' },
+  'northampton': { primary: '#A81B23', secondary: '#FFFFFF' },
+  'peterborough united': { primary: '#0055A4', secondary: '#FFFFFF' },
+  'peterborough': { primary: '#0055A4', secondary: '#FFFFFF' },
+  'reading': { primary: '#004494', secondary: '#FFFFFF' },
+  'rotherham united': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'rotherham': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'shrewsbury town': { primary: '#003DA5', secondary: '#FFCC00' },
+  'shrewsbury': { primary: '#003DA5', secondary: '#FFCC00' },
+  'stockport county': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'stockport': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'wigan athletic': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'wigan': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'wrexham': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'wycombe wanderers': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'wycombe': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'blackburn rovers': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'blackburn': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'bristol city': { primary: '#E21836', secondary: '#FFFFFF' },
+  'stevenage': { primary: '#CC0000', secondary: '#FFFFFF' },
 
-  // BUNDESLIGA (league 78)
-  157: { primary: '#DC052D', secondary: '#FFFFFF' },  // Bayern Munich
-  165: { primary: '#000000', secondary: '#1FA149' },  // Borussia Monchengladbach
-  174: { primary: '#FDE100', secondary: '#000000' },  // Borussia Dortmund
-  172: { primary: '#E32221', secondary: '#000000' },  // Bayer Leverkusen
-  173: { primary: '#DD0741', secondary: '#FFFFFF' },  // RB Leipzig
-  169: { primary: '#E1000F', secondary: '#FFFFFF' },  // Eintracht Frankfurt
-  168: { primary: '#E30613', secondary: '#FFFFFF' },  // SC Freiburg
-  170: { primary: '#FFFFFF', secondary: '#E32219' },  // VfB Stuttgart
-  167: { primary: '#1C63B7', secondary: '#FFFFFF' },  // TSG Hoffenheim
-  171: { primary: '#65B32E', secondary: '#FFFFFF' },  // VfL Wolfsburg
-  162: { primary: '#1D9053', secondary: '#FFFFFF' },  // Werder Bremen
-  163: { primary: '#EB1923', secondary: '#FFFFFF' },  // 1. FC Union Berlin
-  164: { primary: '#BA3733', secondary: '#2E6B34' },  // FC Augsburg
-  176: { primary: '#005BA1', secondary: '#FFFFFF' },  // VfL Bochum
-  166: { primary: '#D40511', secondary: '#003DA5' },  // 1. FC Heidenheim
-  175: { primary: '#004E9E', secondary: '#FFFFFF' },  // SV Darmstadt 98
-  178: { primary: '#6E3B23', secondary: '#FFFFFF' },  // FC St. Pauli
-  191: { primary: '#003DA5', secondary: '#FFFFFF' },  // Holstein Kiel
-  161: { primary: '#FFFFFF', secondary: '#CC0000' },  // 1. FC Koln
-  159: { primary: '#005DAC', secondary: '#FFFFFF' },  // Hertha BSC
+  // ============================================================
+  // LA LIGA 2025-26
+  // ============================================================
+  'real madrid': { primary: '#FFFFFF', secondary: '#FEBE10' },
+  'barcelona': { primary: '#A50044', secondary: '#004D98' },
+  'fc barcelona': { primary: '#A50044', secondary: '#004D98' },
+  'atletico madrid': { primary: '#CB3524', secondary: '#FFFFFF' },
+  'atlético madrid': { primary: '#CB3524', secondary: '#FFFFFF' },
+  'athletic bilbao': { primary: '#EE2523', secondary: '#FFFFFF' },
+  'athletic club': { primary: '#EE2523', secondary: '#FFFFFF' },
+  'valencia': { primary: '#FFFFFF', secondary: '#000000' },
+  'valencia cf': { primary: '#FFFFFF', secondary: '#000000' },
+  'villarreal': { primary: '#FFCD00', secondary: '#005BAA' },
+  'villarreal cf': { primary: '#FFCD00', secondary: '#005BAA' },
+  'real sociedad': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'real betis': { primary: '#00954C', secondary: '#FFFFFF' },
+  'sevilla': { primary: '#FFFFFF', secondary: '#D20515' },
+  'sevilla fc': { primary: '#FFFFFF', secondary: '#D20515' },
+  'celta vigo': { primary: '#8AC3EE', secondary: '#FFFFFF' },
+  'rc celta': { primary: '#8AC3EE', secondary: '#FFFFFF' },
+  'osasuna': { primary: '#D91A2A', secondary: '#0A1E5C' },
+  'ca osasuna': { primary: '#D91A2A', secondary: '#0A1E5C' },
+  'girona': { primary: '#CC2635', secondary: '#FFFFFF' },
+  'girona fc': { primary: '#CC2635', secondary: '#FFFFFF' },
+  'getafe': { primary: '#005999', secondary: '#FFFFFF' },
+  'getafe cf': { primary: '#005999', secondary: '#FFFFFF' },
+  'rayo vallecano': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'espanyol': { primary: '#007FC8', secondary: '#FFFFFF' },
+  'rcd espanyol': { primary: '#007FC8', secondary: '#FFFFFF' },
+  'real valladolid': { primary: '#6B3FA0', secondary: '#FFFFFF' },
+  'valladolid': { primary: '#6B3FA0', secondary: '#FFFFFF' },
+  'deportivo alaves': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'alaves': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'deportivo alavés': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'mallorca': { primary: '#E03C31', secondary: '#000000' },
+  'rcd mallorca': { primary: '#E03C31', secondary: '#000000' },
+  'las palmas': { primary: '#FFDD00', secondary: '#003DA5' },
+  'ud las palmas': { primary: '#FFDD00', secondary: '#003DA5' },
+  'leganes': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'cd leganes': { primary: '#003DA5', secondary: '#FFFFFF' },
 
-  // SERIE A / ITALIAN CLUBS
-  489: { primary: '#FB090B', secondary: '#000000' },  // AC Milan
-  496: { primary: '#000000', secondary: '#FFFFFF' },  // Juventus
-  505: { primary: '#009DDC', secondary: '#000000' },  // Inter Milan
-  492: { primary: '#12A0D7', secondary: '#FFFFFF' },  // Napoli
-  497: { primary: '#8E1F2F', secondary: '#F5A623' },  // AS Roma
-  499: { primary: '#1E71B8', secondary: '#000000' },  // Atalanta
-  500: { primary: '#1A2C5B', secondary: '#A71C2F' },  // Bologna
-  502: { primary: '#482E92', secondary: '#FFFFFF' },  // Fiorentina
-  503: { primary: '#8B1C2F', secondary: '#FFFFFF' },  // Torino
-  504: { primary: '#87CEEB', secondary: '#FFFFFF' },  // Lazio
-  498: { primary: '#00563F', secondary: '#000000' },  // Sassuolo
+  // ============================================================
+  // BUNDESLIGA 2025-26
+  // ============================================================
+  'bayern munich': { primary: '#DC052D', secondary: '#FFFFFF' },
+  'fc bayern münchen': { primary: '#DC052D', secondary: '#FFFFFF' },
+  'fc bayern munich': { primary: '#DC052D', secondary: '#FFFFFF' },
+  'borussia dortmund': { primary: '#FDE100', secondary: '#000000' },
+  'bayer leverkusen': { primary: '#E32221', secondary: '#000000' },
+  'rb leipzig': { primary: '#DD0741', secondary: '#FFFFFF' },
+  'eintracht frankfurt': { primary: '#000000', secondary: '#E1000F' },
+  'vfb stuttgart': { primary: '#FFFFFF', secondary: '#E32219' },
+  'stuttgart': { primary: '#FFFFFF', secondary: '#E32219' },
+  'sc freiburg': { primary: '#E30613', secondary: '#FFFFFF' },
+  'freiburg': { primary: '#E30613', secondary: '#FFFFFF' },
+  'tsg hoffenheim': { primary: '#1C63B7', secondary: '#FFFFFF' },
+  'hoffenheim': { primary: '#1C63B7', secondary: '#FFFFFF' },
+  'vfl wolfsburg': { primary: '#65B32E', secondary: '#FFFFFF' },
+  'wolfsburg': { primary: '#65B32E', secondary: '#FFFFFF' },
+  'werder bremen': { primary: '#1D9053', secondary: '#FFFFFF' },
+  'sv werder bremen': { primary: '#1D9053', secondary: '#FFFFFF' },
+  'borussia monchengladbach': { primary: '#000000', secondary: '#1FA149' },
+  'borussia mönchengladbach': { primary: '#000000', secondary: '#1FA149' },
+  'fc union berlin': { primary: '#EB1923', secondary: '#FFFFFF' },
+  'union berlin': { primary: '#EB1923', secondary: '#FFFFFF' },
+  '1. fc union berlin': { primary: '#EB1923', secondary: '#FFFFFF' },
+  'fc augsburg': { primary: '#BA3733', secondary: '#FFFFFF' },
+  'augsburg': { primary: '#BA3733', secondary: '#FFFFFF' },
+  'vfl bochum': { primary: '#005BA1', secondary: '#FFFFFF' },
+  'bochum': { primary: '#005BA1', secondary: '#FFFFFF' },
+  '1. fc heidenheim': { primary: '#D40511', secondary: '#003DA5' },
+  'heidenheim': { primary: '#D40511', secondary: '#003DA5' },
+  'fc st. pauli': { primary: '#6E3B23', secondary: '#FFFFFF' },
+  'st. pauli': { primary: '#6E3B23', secondary: '#FFFFFF' },
+  'holstein kiel': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'kiel': { primary: '#003DA5', secondary: '#FFFFFF' },
+  '1. fc koln': { primary: '#FFFFFF', secondary: '#CC0000' },
+  '1. fc köln': { primary: '#FFFFFF', secondary: '#CC0000' },
+  'fc koln': { primary: '#FFFFFF', secondary: '#CC0000' },
+  'hertha bsc': { primary: '#005DAC', secondary: '#FFFFFF' },
+  'hertha': { primary: '#005DAC', secondary: '#FFFFFF' },
+  'sv darmstadt 98': { primary: '#004E9E', secondary: '#FFFFFF' },
+  'darmstadt': { primary: '#004E9E', secondary: '#FFFFFF' },
 
-  // LIGUE 1 / FRENCH CLUBS
-  80: { primary: '#D2122E', secondary: '#00529F' },   // Olympique Lyonnais
-  81: { primary: '#2FAEE0', secondary: '#FFFFFF' },   // Olympique de Marseille
-  79: { primary: '#DA291C', secondary: '#FFFFFF' },   // Lille OSC
-  91: { primary: '#E30613', secondary: '#FFFFFF' },   // AS Monaco
-  82: { primary: '#00694C', secondary: '#FFFFFF' },   // AS Saint-Etienne
-  83: { primary: '#FCDD09', secondary: '#00843D' },   // FC Nantes
-  84: { primary: '#CC0000', secondary: '#000000' },   // OGC Nice
-  93: { primary: '#B22222', secondary: '#FFFFFF' },   // Stade de Reims
-  94: { primary: '#DA291C', secondary: '#000000' },   // Stade Rennais
-  116: { primary: '#CC0000', secondary: '#FFD700' },  // RC Lens
+  // ============================================================
+  // PRIMEIRA LIGA 2025-26
+  // ============================================================
+  'benfica': { primary: '#E20714', secondary: '#FFFFFF' },
+  'sl benfica': { primary: '#E20714', secondary: '#FFFFFF' },
+  'sporting cp': { primary: '#006847', secondary: '#FFFFFF' },
+  'sporting lisbon': { primary: '#006847', secondary: '#FFFFFF' },
+  'sporting clube de portugal': { primary: '#006847', secondary: '#FFFFFF' },
+  'fc porto': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'porto': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'sc braga': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'braga': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'vitoria sc': { primary: '#006400', secondary: '#FFFFFF' },
+  'vitoria de guimaraes': { primary: '#006400', secondary: '#FFFFFF' },
+  'casa pia': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'famalicao': { primary: '#006847', secondary: '#FFFFFF' },
+  'fc famalicao': { primary: '#006847', secondary: '#FFFFFF' },
+  'boavista': { primary: '#000000', secondary: '#FFFFFF' },
+  'boavista fc': { primary: '#000000', secondary: '#FFFFFF' },
+  'estoril': { primary: '#FFCD00', secondary: '#000000' },
+  'estoril praia': { primary: '#FFCD00', secondary: '#000000' },
+  'moreirense': { primary: '#006400', secondary: '#FFFFFF' },
+  'rio ave': { primary: '#006400', secondary: '#FFFFFF' },
+  'santa clara': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'cd santa clara': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'nacional': { primary: '#000000', secondary: '#FFFFFF' },
+  'cd nacional': { primary: '#000000', secondary: '#FFFFFF' },
+  'estrela amadora': { primary: '#CC0000', secondary: '#000000' },
+  'gil vicente': { primary: '#000000', secondary: '#CC0000' },
 
-  // PRIMEIRA LIGA / PORTUGUESE CLUBS (league 94)
-  211: { primary: '#E20714', secondary: '#FFFFFF' },  // SL Benfica
-  212: { primary: '#006847', secondary: '#FFFFFF' },  // Sporting CP
-  228: { primary: '#003DA5', secondary: '#FFFFFF' },  // FC Porto
+  // ============================================================
+  // CHAMPIONS LEAGUE — additional clubs not above
+  // ============================================================
+  'paris saint-germain': { primary: '#004170', secondary: '#DA291C' },
+  'paris saint germain': { primary: '#004170', secondary: '#DA291C' },
+  'psg': { primary: '#004170', secondary: '#DA291C' },
+  'juventus': { primary: '#000000', secondary: '#FFFFFF' },
+  'ac milan': { primary: '#FB090B', secondary: '#000000' },
+  'inter milan': { primary: '#009DDC', secondary: '#000000' },
+  'inter': { primary: '#009DDC', secondary: '#000000' },
+  'fc internazionale': { primary: '#009DDC', secondary: '#000000' },
+  'internazionale': { primary: '#009DDC', secondary: '#000000' },
+  'napoli': { primary: '#12A0D7', secondary: '#FFFFFF' },
+  'ssc napoli': { primary: '#12A0D7', secondary: '#FFFFFF' },
+  'as roma': { primary: '#8E1F2F', secondary: '#F5A623' },
+  'roma': { primary: '#8E1F2F', secondary: '#F5A623' },
+  'atalanta': { primary: '#1E71B8', secondary: '#000000' },
+  'atalanta bc': { primary: '#1E71B8', secondary: '#000000' },
+  'lazio': { primary: '#87CEEB', secondary: '#FFFFFF' },
+  'ss lazio': { primary: '#87CEEB', secondary: '#FFFFFF' },
+  'fiorentina': { primary: '#482E92', secondary: '#FFFFFF' },
+  'acf fiorentina': { primary: '#482E92', secondary: '#FFFFFF' },
+  'bologna': { primary: '#1A2C5B', secondary: '#A71C2F' },
+  'fc bologna': { primary: '#1A2C5B', secondary: '#A71C2F' },
+  'torino': { primary: '#8B1C2F', secondary: '#FFFFFF' },
+  'as monaco': { primary: '#E30613', secondary: '#FFFFFF' },
+  'monaco': { primary: '#E30613', secondary: '#FFFFFF' },
+  'olympique lyonnais': { primary: '#FFFFFF', secondary: '#D2122E' },
+  'lyon': { primary: '#FFFFFF', secondary: '#D2122E' },
+  'olympique de marseille': { primary: '#2FAEE0', secondary: '#FFFFFF' },
+  'marseille': { primary: '#2FAEE0', secondary: '#FFFFFF' },
+  'lille': { primary: '#DA291C', secondary: '#FFFFFF' },
+  'losc lille': { primary: '#DA291C', secondary: '#FFFFFF' },
+  'rc lens': { primary: '#CC0000', secondary: '#FFD700' },
+  'lens': { primary: '#CC0000', secondary: '#FFD700' },
+  'stade rennais': { primary: '#DA291C', secondary: '#000000' },
+  'rennes': { primary: '#DA291C', secondary: '#000000' },
+  'nice': { primary: '#CC0000', secondary: '#000000' },
+  'ogc nice': { primary: '#CC0000', secondary: '#000000' },
+  'psv eindhoven': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'psv': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'ajax': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'afc ajax': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'feyenoord': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'celtic': { primary: '#00843D', secondary: '#FFFFFF' },
+  'rangers': { primary: '#0000FF', secondary: '#FFFFFF' },
+  'shakhtar donetsk': { primary: '#FF6600', secondary: '#000000' },
+  'shakhtar': { primary: '#FF6600', secondary: '#000000' },
+  'red bull salzburg': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'rb salzburg': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'club brugge': { primary: '#003DA5', secondary: '#000000' },
+  'anderlecht': { primary: '#6B4EAE', secondary: '#FFFFFF' },
+  'galatasaray': { primary: '#CC0000', secondary: '#FFCD00' },
+  'fenerbahce': { primary: '#003DA5', secondary: '#FFCD00' },
+  'besiktas': { primary: '#000000', secondary: '#FFFFFF' },
 
-  // SCOTTISH
-  247: { primary: '#00843D', secondary: '#FFFFFF' },  // Celtic
-  248: { primary: '#0000FF', secondary: '#FFFFFF' },  // Rangers
-};
-
-// ============================================================
-// NAME-BASED MAP — all teams, especially reliable for nationals
-// Names should match what API-Football returns in fixture responses.
-// Includes common variations.
-// ============================================================
-const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
-
-  // --- INTERNATIONAL: Home Nations + Ireland ---
+  // ============================================================
+  // INTERNATIONAL: Home Nations + Ireland
+  // ============================================================
   'england': { primary: '#FFFFFF', secondary: '#002395' },
   'scotland': { primary: '#003087', secondary: '#FFFFFF' },
   'wales': { primary: '#D20515', secondary: '#FFFFFF' },
@@ -151,7 +306,9 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'republic of ireland': { primary: '#009A49', secondary: '#FFFFFF' },
   'ireland': { primary: '#009A49', secondary: '#FFFFFF' },
 
-  // --- INTERNATIONAL: Europe ---
+  // ============================================================
+  // INTERNATIONAL: Europe
+  // ============================================================
   'france': { primary: '#002395', secondary: '#FFFFFF' },
   'germany': { primary: '#FFFFFF', secondary: '#000000' },
   'spain': { primary: '#DA291C', secondary: '#FFCD00' },
@@ -189,8 +346,11 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'russia': { primary: '#FFFFFF', secondary: '#DA291C' },
   'kosovo': { primary: '#003DA5', secondary: '#FFD700' },
   'luxembourg': { primary: '#DA291C', secondary: '#009FDA' },
+  'israel': { primary: '#FFFFFF', secondary: '#003DA5' },
 
-  // --- INTERNATIONAL: South America ---
+  // ============================================================
+  // INTERNATIONAL: South America
+  // ============================================================
   'brazil': { primary: '#FFCC00', secondary: '#009B3A' },
   'argentina': { primary: '#75AADB', secondary: '#FFFFFF' },
   'colombia': { primary: '#FFCC00', secondary: '#003DA5' },
@@ -202,7 +362,9 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'venezuela': { primary: '#8D1B3D', secondary: '#FFFFFF' },
   'bolivia': { primary: '#007A33', secondary: '#FFCD00' },
 
-  // --- INTERNATIONAL: Asia ---
+  // ============================================================
+  // INTERNATIONAL: Asia
+  // ============================================================
   'japan': { primary: '#003087', secondary: '#FFFFFF' },
   'south korea': { primary: '#CC0000', secondary: '#003DA5' },
   'korea republic': { primary: '#CC0000', secondary: '#003DA5' },
@@ -216,7 +378,9 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'china pr': { primary: '#CC0000', secondary: '#FFCD00' },
   'united arab emirates': { primary: '#FFFFFF', secondary: '#CC0000' },
 
-  // --- INTERNATIONAL: Africa ---
+  // ============================================================
+  // INTERNATIONAL: Africa
+  // ============================================================
   'morocco': { primary: '#CC0000', secondary: '#009900' },
   'cameroon': { primary: '#007A33', secondary: '#CC0000' },
   'south africa': { primary: '#007749', secondary: '#FFB81C' },
@@ -232,7 +396,9 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'dr congo': { primary: '#007FFF', secondary: '#CC0000' },
   'congo dr': { primary: '#007FFF', secondary: '#CC0000' },
 
-  // --- INTERNATIONAL: CONCACAF ---
+  // ============================================================
+  // INTERNATIONAL: CONCACAF
+  // ============================================================
   'mexico': { primary: '#006847', secondary: '#FFFFFF' },
   'usa': { primary: '#FFFFFF', secondary: '#003DA5' },
   'united states': { primary: '#FFFFFF', secondary: '#003DA5' },
@@ -242,103 +408,15 @@ const TEAM_COLOURS_BY_NAME: Record<string, Colours> = {
   'panama': { primary: '#CC0000', secondary: '#003DA5' },
   'honduras': { primary: '#003DA5', secondary: '#FFFFFF' },
   'new zealand': { primary: '#FFFFFF', secondary: '#000000' },
-
-  // --- CLUBS (name variants for fallback) ---
-  'manchester united': { primary: '#DA291C', secondary: '#FFFFFF' },
-  'manchester city': { primary: '#6CABDD', secondary: '#FFFFFF' },
-  'liverpool': { primary: '#C8102E', secondary: '#FFFFFF' },
-  'arsenal': { primary: '#EF0107', secondary: '#FFFFFF' },
-  'tottenham': { primary: '#132257', secondary: '#FFFFFF' },
-  'tottenham hotspur': { primary: '#132257', secondary: '#FFFFFF' },
-  'chelsea': { primary: '#034694', secondary: '#FFFFFF' },
-  'west ham': { primary: '#7A263A', secondary: '#59C2E6' },
-  'west ham united': { primary: '#7A263A', secondary: '#59C2E6' },
-  'aston villa': { primary: '#670E36', secondary: '#95BFE5' },
-  'wolverhampton wanderers': { primary: '#FDB913', secondary: '#231F20' },
-  'wolves': { primary: '#FDB913', secondary: '#231F20' },
-  'everton': { primary: '#003399', secondary: '#FFFFFF' },
-  'leicester city': { primary: '#003090', secondary: '#FDBE11' },
-  'leicester': { primary: '#003090', secondary: '#FDBE11' },
-  'crystal palace': { primary: '#1B458F', secondary: '#C4122E' },
-  'brighton': { primary: '#0057B8', secondary: '#FFFFFF' },
-  'brighton & hove albion': { primary: '#0057B8', secondary: '#FFFFFF' },
-  'brighton and hove albion': { primary: '#0057B8', secondary: '#FFFFFF' },
-  'nottingham forest': { primary: '#DD0000', secondary: '#FFFFFF' },
-  'brentford': { primary: '#E30613', secondary: '#FFFFFF' },
-  'fulham': { primary: '#000000', secondary: '#FFFFFF' },
-  'southampton': { primary: '#D71920', secondary: '#FFFFFF' },
-  'newcastle': { primary: '#241F20', secondary: '#FFFFFF' },
-  'newcastle united': { primary: '#241F20', secondary: '#FFFFFF' },
-  'ipswich town': { primary: '#3A64A3', secondary: '#FFFFFF' },
-  'ipswich': { primary: '#3A64A3', secondary: '#FFFFFF' },
-  'bournemouth': { primary: '#DA291C', secondary: '#000000' },
-  'afc bournemouth': { primary: '#DA291C', secondary: '#000000' },
-  'leeds united': { primary: '#FFFFFF', secondary: '#1D428A' },
-  'leeds': { primary: '#FFFFFF', secondary: '#1D428A' },
-  'burnley': { primary: '#6C1D45', secondary: '#99D6EA' },
-  'norwich city': { primary: '#FFF200', secondary: '#00A650' },
-  'norwich': { primary: '#FFF200', secondary: '#00A650' },
-  'sheffield united': { primary: '#EE2737', secondary: '#FFFFFF' },
-  'sunderland': { primary: '#EB172B', secondary: '#FFFFFF' },
-  'middlesbrough': { primary: '#DC002E', secondary: '#FFFFFF' },
-  'west bromwich albion': { primary: '#122F67', secondary: '#FFFFFF' },
-  'west brom': { primary: '#122F67', secondary: '#FFFFFF' },
-  'watford': { primary: '#FBEE23', secondary: '#000000' },
-  'swansea city': { primary: '#FFFFFF', secondary: '#000000' },
-  'hull city': { primary: '#F5A623', secondary: '#000000' },
-  'sheffield wednesday': { primary: '#0066B2', secondary: '#FFFFFF' },
-  'derby county': { primary: '#FFFFFF', secondary: '#000000' },
-  'blackburn rovers': { primary: '#003DA5', secondary: '#FFFFFF' },
-  'portsmouth': { primary: '#001489', secondary: '#FFFFFF' },
-  'oxford united': { primary: '#F5D130', secondary: '#002D62' },
-  'coventry city': { primary: '#62B5E5', secondary: '#FFFFFF' },
-  'bristol city': { primary: '#E21836', secondary: '#FFFFFF' },
-  'millwall': { primary: '#001D5E', secondary: '#FFFFFF' },
-  'preston north end': { primary: '#FFFFFF', secondary: '#1E3A5F' },
-  'plymouth argyle': { primary: '#003E2F', secondary: '#FFFFFF' },
-  'qpr': { primary: '#1D5BA4', secondary: '#FFFFFF' },
-  'queens park rangers': { primary: '#1D5BA4', secondary: '#FFFFFF' },
-  'stoke city': { primary: '#E03A3E', secondary: '#FFFFFF' },
-  'real madrid': { primary: '#FFFFFF', secondary: '#FEBE10' },
-  'barcelona': { primary: '#A50044', secondary: '#004D98' },
-  'atletico madrid': { primary: '#CB3524', secondary: '#FFFFFF' },
-  'athletic bilbao': { primary: '#EE2523', secondary: '#FFFFFF' },
-  'athletic club': { primary: '#EE2523', secondary: '#FFFFFF' },
-  'bayern munich': { primary: '#DC052D', secondary: '#FFFFFF' },
-  'bayern munchen': { primary: '#DC052D', secondary: '#FFFFFF' },
-  'borussia dortmund': { primary: '#FDE100', secondary: '#000000' },
-  'bayer leverkusen': { primary: '#E32221', secondary: '#000000' },
-  'rb leipzig': { primary: '#DD0741', secondary: '#FFFFFF' },
-  'juventus': { primary: '#000000', secondary: '#FFFFFF' },
-  'ac milan': { primary: '#FB090B', secondary: '#000000' },
-  'inter milan': { primary: '#009DDC', secondary: '#000000' },
-  'inter': { primary: '#009DDC', secondary: '#000000' },
-  'napoli': { primary: '#12A0D7', secondary: '#FFFFFF' },
-  'as roma': { primary: '#8E1F2F', secondary: '#F5A623' },
-  'roma': { primary: '#8E1F2F', secondary: '#F5A623' },
-  'paris saint germain': { primary: '#004170', secondary: '#DA291C' },
-  'psg': { primary: '#004170', secondary: '#DA291C' },
-  'benfica': { primary: '#E20714', secondary: '#FFFFFF' },
-  'sporting cp': { primary: '#006847', secondary: '#FFFFFF' },
-  'porto': { primary: '#003DA5', secondary: '#FFFFFF' },
-  'fc porto': { primary: '#003DA5', secondary: '#FFFFFF' },
-  'celtic': { primary: '#00843D', secondary: '#FFFFFF' },
-  'rangers': { primary: '#0000FF', secondary: '#FFFFFF' },
 };
 
 const DEFAULT_COLOURS: Colours = { primary: '#334155', secondary: '#94a3b8' };
 
-export function getTeamColours(teamId: number, teamName?: string): Colours {
-  // Try ID first
-  const byId = TEAM_COLOURS_BY_ID[teamId];
-  if (byId) return byId;
-
-  // Try name (case-insensitive)
+export function getTeamColours(_teamId: number, teamName?: string): Colours {
   if (teamName) {
-    const byName = TEAM_COLOURS_BY_NAME[teamName.toLowerCase()];
-    if (byName) return byName;
+    const match = TEAM_COLOURS[teamName.toLowerCase()];
+    if (match) return match;
   }
-
   return DEFAULT_COLOURS;
 }
 

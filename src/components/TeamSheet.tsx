@@ -7,6 +7,8 @@ interface Props {
   picks: PickSlot[];
   homeTeamId: number;
   awayTeamId: number;
+  homeTeamName?: string;
+  awayTeamName?: string;
   captainSlot?: number;
 }
 
@@ -17,13 +19,19 @@ const POSITION_LABELS: Record<string, string> = {
   FWD: 'FWD',
 };
 
-export default function TeamSheet({ picks, homeTeamId, awayTeamId, captainSlot }: Props) {
+export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName, awayTeamName, captainSlot }: Props) {
   const sorted = [...picks].sort((a, b) => a.slotIndex - b.slotIndex);
+
+  function resolveTeamName(teamId: number): string | undefined {
+    if (teamId === homeTeamId) return homeTeamName;
+    if (teamId === awayTeamId) return awayTeamName;
+    return undefined;
+  }
 
   return (
     <div className="bg-charcoal/40 rounded-xl p-3 space-y-1.5">
       {sorted.map(pick => {
-        const teamColours = getTeamColours(pick.teamId);
+        const teamColours = getTeamColours(pick.teamId, resolveTeamName(pick.teamId));
         const points = pick.points;
         const isCaptain = captainSlot !== undefined && pick.slotIndex === captainSlot;
 

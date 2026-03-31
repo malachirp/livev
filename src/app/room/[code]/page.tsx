@@ -237,6 +237,8 @@ export default function LiveRoomPage() {
         players={leaderboard}
         homeTeamId={room.homeTeamId}
         awayTeamId={room.awayTeamId}
+        homeTeamName={room.homeTeamName}
+        awayTeamName={room.awayTeamName}
       />
 
       {/* Bottom action bar */}

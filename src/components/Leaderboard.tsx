@@ -10,6 +10,8 @@ interface Props {
   currentSessionToken?: string;
   homeTeamId: number;
   awayTeamId: number;
+  homeTeamName?: string;
+  awayTeamName?: string;
 }
 
 function getDominantTeamId(picks: PlayerData['picks']): number | null {
@@ -20,7 +22,7 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
   return Number(sorted[0][0]);
 }
 
-export default function Leaderboard({ players, currentSessionToken, homeTeamId, awayTeamId }: Props) {
+export default function Leaderboard({ players, currentSessionToken, homeTeamId, awayTeamId, homeTeamName, awayTeamName }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -41,7 +43,8 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
         const hasPicks = player.picks.length > 0;
         const rank = index + 1;
         const dominantTeamId = getDominantTeamId(player.picks);
-        const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId).primary : null;
+        const dominantName = dominantTeamId === homeTeamId ? homeTeamName : dominantTeamId === awayTeamId ? awayTeamName : undefined;
+        const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId, dominantName).primary : null;
 
         return (
           <div key={player.id} className="animate-fade-in">
@@ -112,7 +115,7 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
             {/* Expanded team sheet */}
             {isExpanded && hasPicks && (
               <div className="mt-1 animate-slide-up">
-                <TeamSheet picks={player.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} captainSlot={player.captainSlot} />
+                <TeamSheet picks={player.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} homeTeamName={homeTeamName} awayTeamName={awayTeamName} captainSlot={player.captainSlot} />
               </div>
             )}
           </div>
