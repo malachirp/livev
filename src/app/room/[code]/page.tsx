@@ -181,8 +181,8 @@ export default function LiveRoomPage() {
       <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
         <div className="flex items-center gap-2">
           <a href="/" className="flex items-baseline gap-0.5">
-            <span className="text-xl font-black tracking-tight text-white">LIVE</span>
-            <span className="text-xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+            <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
           </a>
           {live && (
             <span className="ml-2 flex items-center gap-1 bg-live-red/10 px-2 py-0.5 rounded-full">
@@ -200,6 +200,8 @@ export default function LiveRoomPage() {
         awayTeamId={room.awayTeamId}
         homeTeamName={room.homeTeamName}
         awayTeamName={room.awayTeamName}
+        homeTeamLogo={room.homeTeamLogo || undefined}
+        awayTeamLogo={room.awayTeamLogo || undefined}
         homeScore={match.homeScore}
         awayScore={match.awayScore}
         status={match.status}
@@ -253,7 +255,7 @@ export default function LiveRoomPage() {
         </div>
       )}
 
-      {isInGame && hasPicks && !finished && !live && (
+      {isInGame && hasPicks && match.status === 'NS' && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button

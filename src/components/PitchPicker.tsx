@@ -3,21 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { NormalizedPlayer, PickData } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
+import ShirtIcon from './ShirtIcon';
+import ShareButton from './ShareButton';
 
 interface SlotConfig {
   index: number;
   position: 'GK' | 'DEF' | 'MID' | 'FWD';
   label: string;
-  row: number;
-  col: number;
 }
 
 const SLOTS: SlotConfig[] = [
-  { index: 0, position: 'FWD', label: 'ST', row: 0, col: 1 },
-  { index: 1, position: 'MID', label: 'MID', row: 1, col: 0 },
-  { index: 2, position: 'MID', label: 'MID', row: 1, col: 2 },
-  { index: 3, position: 'DEF', label: 'DEF', row: 2, col: 1 },
-  { index: 4, position: 'GK', label: 'GK', row: 3, col: 1 },
+  { index: 0, position: 'FWD', label: 'ST' },
+  { index: 1, position: 'MID', label: 'MID' },
+  { index: 2, position: 'MID', label: 'MID' },
+  { index: 3, position: 'DEF', label: 'DEF' },
+  { index: 4, position: 'GK', label: 'GK' },
 ];
 
 interface Props {
@@ -25,12 +25,15 @@ interface Props {
   homeTeamId: number;
   awayTeamId: number;
   existingPicks?: PickData[];
-  onSubmit: (picks: PickData[]) => void;
+  onSubmit: (picks: PickData[], captainSlot: number) => void;
   submitting: boolean;
+  roomCode: string;
+  existingCaptainSlot?: number;
 }
 
-export default function PitchPicker({ players, homeTeamId, awayTeamId, existingPicks, onSubmit, submitting }: Props) {
+export default function PitchPicker({ players, homeTeamId, awayTeamId, existingPicks, onSubmit, submitting, roomCode, existingCaptainSlot }: Props) {
   const [picks, setPicks] = useState<(PickData | null)[]>([null, null, null, null, null]);
+  const [captainSlot, setCaptainSlot] = useState<number>(0); // Default captain is FWD (slot 0)
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -40,19 +43,22 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
       existingPicks.forEach(p => { filled[p.slotIndex] = p; });
       setPicks(filled);
     }
-  }, [existingPicks]);
+    if (existingCaptainSlot !== undefined) {
+      setCaptainSlot(existingCaptainSlot);
+    }
+  }, [existingPicks, existingCaptainSlot]);
 
   const getTeamCount = useCallback((teamId: number) => {
     return picks.filter(p => p && p.teamId === teamId).length;
   }, [picks]);
 
   const canPickFromTeam = useCallback((teamId: number, slotIndex: number) => {
-    const currentPick = picks[slotIndex];
     const otherPicks = picks.filter((p, i) => i !== slotIndex && p !== null);
     const teamCount = otherPicks.filter(p => p!.teamId === teamId).length;
     return teamCount < 3;
   }, [picks]);
 
+  // Alphabetical, mixed teams
   const filteredPlayers = activeSlot !== null
     ? players
         .filter(p => p.position === SLOTS[activeSlot].position)
@@ -61,6 +67,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
           if (!searchQuery) return true;
           return p.name.toLowerCase().includes(searchQuery.toLowerCase());
         })
+        .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
   const handleSelectPlayer = (player: NormalizedPlayer) => {
@@ -80,98 +87,97 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
     setSearchQuery('');
   };
 
+  const handleToggleCaptain = (slotIndex: number) => {
+    if (picks[slotIndex]) {
+      setCaptainSlot(slotIndex);
+    }
+  };
+
   const allFilled = picks.every(p => p !== null);
   const homeCount = getTeamCount(homeTeamId);
   const awayCount = getTeamCount(awayTeamId);
 
   const handleSubmit = () => {
     if (!allFilled) return;
-    onSubmit(picks.filter(Boolean) as PickData[]);
+    onSubmit(picks.filter(Boolean) as PickData[], captainSlot);
+  };
+
+  // Find player number from squad data
+  const getPlayerNumber = (footballPlayerId: number): number | null => {
+    const p = players.find(pl => pl.id === footballPlayerId);
+    return p?.number ?? null;
   };
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Team balance indicator */}
-      <div className="flex items-center justify-center gap-3 px-4 py-2">
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(homeTeamId).primary }} />
-          <span className="text-xs font-bold text-white/60">{homeCount}</span>
+      {/* Team balance + share */}
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(homeTeamId).primary }} />
+            <span className="text-xs font-bold text-white/60">{homeCount}</span>
+          </div>
+          <span className="text-[10px] text-white/30 font-medium">TEAM BALANCE</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-white/60">{awayCount}</span>
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(awayTeamId).primary }} />
+          </div>
         </div>
-        <span className="text-[10px] text-white/30 font-medium">TEAM BALANCE</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-white/60">{awayCount}</span>
-          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(awayTeamId).primary }} />
-        </div>
+        <ShareButton roomCode={roomCode} />
       </div>
 
       {/* Pitch */}
-      <div className="pitch-bg rounded-2xl mx-4 p-4 flex-1 min-h-[340px] relative">
+      <div className="pitch-bg rounded-2xl mx-4 relative" style={{ paddingBottom: '120%' }}>
         {/* Pitch markings */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-24 h-24 rounded-full border border-white/10" />
+        <div className="absolute inset-0">
+          {/* Center circle */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border border-white/10" />
+          {/* Center line */}
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-white/10" />
+          {/* Top penalty box */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-16 border-b border-l border-r border-white/10 rounded-b-lg" />
+          {/* Bottom penalty box */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border-t border-l border-r border-white/10 rounded-t-lg" />
         </div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-12 border-b border-l border-r border-white/10 rounded-b-lg" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-12 border-t border-l border-r border-white/10 rounded-t-lg" />
 
-        {/* Position slots */}
-        <div className="relative z-10 h-full flex flex-col justify-between py-2">
-          {[0, 1, 2, 3].map(row => (
-            <div key={row} className="flex justify-center gap-8">
-              {SLOTS.filter(s => s.row === row).map(slot => {
-                const pick = picks[slot.index];
-                const teamColours = pick ? getTeamColours(pick.teamId) : null;
-
-                return (
-                  <button
-                    key={slot.index}
-                    onClick={() => { setActiveSlot(slot.index); setSearchQuery(''); }}
-                    className={`flex flex-col items-center gap-1 transition-all active:scale-95 ${
-                      activeSlot === slot.index ? 'scale-110' : ''
-                    }`}
-                  >
-                    {/* Circle */}
-                    <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                        pick
-                          ? 'bg-navy/80 shadow-lg'
-                          : 'border-2 border-dashed border-white/30 bg-white/5'
-                      }`}
-                      style={pick ? { boxShadow: `0 0 0 2px ${teamColours?.primary}` } : {}}
-                    >
-                      {pick ? (
-                        <span className="text-[10px] font-bold text-white text-center leading-tight px-1 line-clamp-2">
-                          {pick.footballPlayerName.split(' ').pop()}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-bold text-white/40">{slot.label}</span>
-                      )}
-                    </div>
-                    {pick && (
-                      <span className="text-[9px] font-semibold text-white/50 max-w-[60px] truncate text-center">
-                        {pick.footballPlayerName.split(' ').slice(0, -1).join(' ').charAt(0)}.{' '}
-                        {pick.footballPlayerName.split(' ').pop()}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+        {/* FWD - top area */}
+        <div className="absolute top-[8%] left-0 right-0 flex justify-center">
+          {renderSlot(0)}
         </div>
+
+        {/* MID - middle, spread wide */}
+        <div className="absolute top-[33%] left-0 right-0 flex justify-between px-[12%]">
+          {renderSlot(1)}
+          {renderSlot(2)}
+        </div>
+
+        {/* DEF - below center */}
+        <div className="absolute top-[58%] left-0 right-0 flex justify-center">
+          {renderSlot(3)}
+        </div>
+
+        {/* GK - bottom */}
+        <div className="absolute top-[80%] left-0 right-0 flex justify-center">
+          {renderSlot(4)}
+        </div>
+      </div>
+
+      {/* Captain hint */}
+      <div className="px-4 pt-3 pb-1">
+        <p className="text-[10px] text-white/30 text-center">
+          Tap a player on the pitch to make them captain (C) for 2x points
+        </p>
       </div>
 
       {/* Bottom sheet - player selector */}
       {activeSlot !== null && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
             onClick={() => { setActiveSlot(null); setSearchQuery(''); }}
           />
 
-          {/* Sheet */}
           <div className="relative bg-navy border-t border-white/10 rounded-t-3xl max-h-[65vh] flex flex-col animate-slide-up">
-            {/* Handle */}
             <div className="flex justify-center py-3">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
@@ -180,7 +186,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
               <h3 className="text-sm font-bold text-white/60 mb-2">
                 Select {SLOTS[activeSlot].label}
               </h3>
-              {/* Search */}
               <input
                 type="text"
                 placeholder="Search players..."
@@ -190,7 +195,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
               />
             </div>
 
-            {/* Player list */}
             <div className="overflow-y-auto flex-1 px-4 pb-6">
               {filteredPlayers.length === 0 ? (
                 <p className="text-white/30 text-sm text-center py-6">No players available</p>
@@ -198,22 +202,24 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
                 <div className="space-y-1 mt-2">
                   {filteredPlayers.map(player => {
                     const teamColours = getTeamColours(player.teamId);
-                    const isSelected = picks.some(p => p?.footballPlayerId === player.id && p?.slotIndex === activeSlot);
+                    const isAlreadyPicked = picks.some(p => p?.footballPlayerId === player.id);
 
                     return (
                       <button
                         key={player.id}
                         onClick={() => handleSelectPlayer(player)}
                         className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all active:scale-[0.98] ${
-                          isSelected
+                          isAlreadyPicked
                             ? 'bg-accent/10 ring-1 ring-accent/30'
                             : 'bg-charcoal/40 hover:bg-charcoal/60'
                         }`}
                       >
-                        {/* Team colour dot */}
-                        <span
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: teamColours.primary }}
+                        {/* Mini shirt */}
+                        <ShirtIcon
+                          primaryColor={teamColours.primary}
+                          secondaryColor={teamColours.secondary}
+                          number={player.number}
+                          size={32}
                         />
 
                         {/* Player info */}
@@ -224,7 +230,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
                           <span className="text-[10px] text-white/40">{player.teamName}</span>
                         </div>
 
-                        {/* Number */}
                         {player.number && (
                           <span className="text-xs font-bold text-white/20">#{player.number}</span>
                         )}
@@ -254,4 +259,63 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
       </div>
     </div>
   );
+
+  function renderSlot(slotIndex: number) {
+    const slot = SLOTS[slotIndex];
+    const pick = picks[slotIndex];
+    const isCaptain = captainSlot === slotIndex && pick !== null;
+    const teamColours = pick ? getTeamColours(pick.teamId) : null;
+    const playerNumber = pick ? getPlayerNumber(pick.footballPlayerId) : null;
+
+    return (
+      <button
+        key={slot.index}
+        onClick={() => {
+          if (pick) {
+            // If already filled, tapping toggles captain
+            handleToggleCaptain(slotIndex);
+          } else {
+            setActiveSlot(slotIndex);
+            setSearchQuery('');
+          }
+        }}
+        onDoubleClick={() => {
+          // Double-tap to re-pick
+          setActiveSlot(slotIndex);
+          setSearchQuery('');
+        }}
+        className={`flex flex-col items-center transition-all active:scale-95 ${
+          activeSlot === slotIndex ? 'scale-110' : ''
+        }`}
+      >
+        {pick ? (
+          <div className="relative">
+            <ShirtIcon
+              primaryColor={teamColours!.primary}
+              secondaryColor={teamColours!.secondary}
+              number={playerNumber}
+              size={56}
+            />
+            {/* Captain badge */}
+            {isCaptain && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-points-gold flex items-center justify-center shadow-lg">
+                <span className="text-[10px] font-black text-navy">C</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/30 bg-white/5 flex items-center justify-center">
+            <span className="text-xs font-bold text-white/40">{slot.label}</span>
+          </div>
+        )}
+
+        {/* Player name */}
+        <span className={`text-[10px] font-semibold mt-1 max-w-[70px] truncate text-center ${
+          isCaptain ? 'text-points-gold' : 'text-white/60'
+        }`}>
+          {pick ? pick.footballPlayerName.split(' ').pop() : slot.label}
+        </span>
+      </button>
+    );
+  }
 }

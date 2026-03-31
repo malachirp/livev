@@ -17,8 +17,8 @@ export default function Header({ showBack, backHref }: { showBack?: boolean; bac
           </Link>
         )}
         <Link href="/" className="flex items-baseline gap-0.5">
-          <span className="text-xl font-black tracking-tight text-white">LIVE</span>
-          <span className="text-xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+          <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+          <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
         </Link>
       </div>
     </header>

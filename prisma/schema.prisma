@@ -16,6 +16,8 @@ model Room {
   awayTeamId   Int
   homeTeamName String
   awayTeamName String
+  homeTeamLogo String?
+  awayTeamLogo String?
   matchDate    DateTime
   createdAt    DateTime @default(now())
   players      Player[]
@@ -31,6 +33,7 @@ model Player {
   sessionToken String   @unique
   isCreator    Boolean  @default(false)
   totalPoints  Int      @default(0)
+  captainSlot  Int      @default(0)
   picks        Pick[]
   createdAt    DateTime @default(now())
 

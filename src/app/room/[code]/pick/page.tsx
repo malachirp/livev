@@ -14,6 +14,7 @@ export default function PickTeamPage() {
   const [players, setPlayers] = useState<NormalizedPlayer[]>([]);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [existingPicks, setExistingPicks] = useState<PickData[]>([]);
+  const [existingCaptainSlot, setExistingCaptainSlot] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,6 @@ export default function PickTeamPage() {
   useEffect(() => {
     async function load() {
       try {
-        // Fetch room data first
         const roomRes = await fetch(`/api/rooms/${code}`);
         const roomData = await roomRes.json();
 
@@ -41,6 +41,9 @@ export default function PickTeamPage() {
           if (playerData?.picks) {
             setExistingPicks(playerData.picks);
           }
+          if (roomData.currentPlayer.captainSlot !== undefined) {
+            setExistingCaptainSlot(roomData.currentPlayer.captainSlot);
+          }
         }
 
         // Fetch squads
@@ -58,7 +61,7 @@ export default function PickTeamPage() {
     load();
   }, [code]);
 
-  const handleSubmit = async (picks: PickData[]) => {
+  const handleSubmit = async (picks: PickData[], captainSlot: number) => {
     setSubmitting(true);
     setError(null);
 
@@ -66,7 +69,7 @@ export default function PickTeamPage() {
       const res = await fetch(`/api/rooms/${code}/pick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ picks }),
+        body: JSON.stringify({ picks, captainSlot }),
       });
 
       if (!res.ok) {
@@ -139,6 +142,8 @@ export default function PickTeamPage() {
           existingPicks={existingPicks}
           onSubmit={handleSubmit}
           submitting={submitting}
+          roomCode={code}
+          existingCaptainSlot={existingCaptainSlot}
         />
       )}
     </div>

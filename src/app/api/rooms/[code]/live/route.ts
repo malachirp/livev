@@ -69,12 +69,16 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
                 room.awayTeamId
               );
 
+              // Captain gets 2x points
+              const isCaptain = pick.slotIndex === player.captainSlot;
+              const finalPoints = isCaptain ? total * 2 : total;
+
               await prisma.pick.update({
                 where: { id: pick.id },
-                data: { points: total, pointsBreakdown: breakdown as any },
+                data: { points: finalPoints, pointsBreakdown: breakdown as any },
               });
 
-              playerTotalPoints += total;
+              playerTotalPoints += finalPoints;
             }
 
             await prisma.player.update({
@@ -153,6 +157,7 @@ export async function GET(
         displayName: p.displayName,
         isCreator: p.isCreator,
         totalPoints: p.totalPoints,
+        captainSlot: p.captainSlot,
         picks: p.picks.map(pick => ({
           footballPlayerId: pick.footballPlayerId,
           footballPlayerName: pick.footballPlayerName,

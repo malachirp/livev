@@ -5,7 +5,7 @@ import { generateRoomCode, generateSessionToken } from '@/lib/utils';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fixtureId, leagueId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, matchDate, displayName } = body;
+    const { fixtureId, leagueId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeTeamLogo, awayTeamLogo, matchDate, displayName } = body;
 
     if (!fixtureId || !displayName || !homeTeamId || !awayTeamId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -23,6 +23,8 @@ export async function POST(request: Request) {
         awayTeamId,
         homeTeamName,
         awayTeamName,
+        homeTeamLogo: homeTeamLogo || null,
+        awayTeamLogo: awayTeamLogo || null,
         matchDate: new Date(matchDate),
         players: {
           create: {

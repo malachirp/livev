@@ -88,7 +88,7 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
             {/* Expanded team sheet */}
             {isExpanded && hasPicks && (
               <div className="mt-1 animate-slide-up">
-                <TeamSheet picks={player.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} />
+                <TeamSheet picks={player.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} captainSlot={player.captainSlot} />
               </div>
             )}
           </div>

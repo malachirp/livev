@@ -45,10 +45,16 @@ export async function POST(
 
     const body = await request.json();
     const picks: PickData[] = body.picks;
+    const captainSlot: number = typeof body.captainSlot === 'number' ? body.captainSlot : 0;
 
     // Validate picks
     if (!picks || picks.length !== 5) {
       return NextResponse.json({ error: 'Must pick exactly 5 players' }, { status: 400 });
+    }
+
+    // Validate captain slot
+    if (captainSlot < 0 || captainSlot > 4) {
+      return NextResponse.json({ error: 'Invalid captain slot' }, { status: 400 });
     }
 
     // Validate positions
@@ -83,17 +89,23 @@ export async function POST(
       where: { playerId: player.id },
     });
 
-    await prisma.pick.createMany({
-      data: picks.map(pick => ({
-        playerId: player.id,
-        footballPlayerId: pick.footballPlayerId,
-        footballPlayerName: pick.footballPlayerName,
-        teamId: pick.teamId,
-        position: pick.position,
-        slotIndex: pick.slotIndex,
-        points: 0,
-      })),
-    });
+    await Promise.all([
+      prisma.pick.createMany({
+        data: picks.map(pick => ({
+          playerId: player.id,
+          footballPlayerId: pick.footballPlayerId,
+          footballPlayerName: pick.footballPlayerName,
+          teamId: pick.teamId,
+          position: pick.position,
+          slotIndex: pick.slotIndex,
+          points: 0,
+        })),
+      }),
+      prisma.player.update({
+        where: { id: player.id },
+        data: { captainSlot },
+      }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -70,6 +70,8 @@ export default function CreateGamePage() {
           awayTeamId: selectedFixture.teams.away.id,
           homeTeamName: selectedFixture.teams.home.name,
           awayTeamName: selectedFixture.teams.away.name,
+          homeTeamLogo: selectedFixture.teams.home.logo,
+          awayTeamLogo: selectedFixture.teams.away.logo,
           matchDate: selectedFixture.fixture.date,
           displayName: displayName.trim(),
         }),
@@ -98,7 +100,7 @@ export default function CreateGamePage() {
           Pick a match
         </h1>
         <p className="text-sm text-white/40 mt-1">
-          Create a 5-a-side game with friends
+          Create a 5-a-side fantasy game with friends for a single match
         </p>
       </div>
 

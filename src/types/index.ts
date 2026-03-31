@@ -176,6 +176,8 @@ export interface RoomData {
   awayTeamId: number;
   homeTeamName: string;
   awayTeamName: string;
+  homeTeamLogo?: string | null;
+  awayTeamLogo?: string | null;
   matchDate: string;
   players: PlayerData[];
 }
@@ -185,6 +187,7 @@ export interface PlayerData {
   displayName: string;
   isCreator: boolean;
   totalPoints: number;
+  captainSlot: number;
   picks: PickSlot[];
 }
 

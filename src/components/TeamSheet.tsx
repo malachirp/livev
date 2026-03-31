@@ -7,9 +7,9 @@ interface Props {
   picks: PickSlot[];
   homeTeamId: number;
   awayTeamId: number;
+  captainSlot?: number;
 }
 
-const POSITION_ORDER = ['FWD', 'MID', 'MID', 'DEF', 'GK'];
 const POSITION_LABELS: Record<string, string> = {
   GK: 'GK',
   DEF: 'DEF',
@@ -17,7 +17,7 @@ const POSITION_LABELS: Record<string, string> = {
   FWD: 'FWD',
 };
 
-export default function TeamSheet({ picks, homeTeamId, awayTeamId }: Props) {
+export default function TeamSheet({ picks, homeTeamId, awayTeamId, captainSlot }: Props) {
   const sorted = [...picks].sort((a, b) => a.slotIndex - b.slotIndex);
 
   return (
@@ -25,7 +25,7 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId }: Props) {
       {sorted.map(pick => {
         const teamColours = getTeamColours(pick.teamId);
         const points = pick.points;
-        const breakdown = pick.pointsBreakdown;
+        const isCaptain = captainSlot !== undefined && pick.slotIndex === captainSlot;
 
         return (
           <div
@@ -46,9 +46,14 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId }: Props) {
               style={{ backgroundColor: teamColours.primary }}
             />
 
-            {/* Name */}
+            {/* Name + captain badge */}
             <span className="text-xs font-semibold text-white/80 flex-1 truncate">
               {pick.footballPlayerName}
+              {isCaptain && (
+                <span className="ml-1.5 text-[9px] font-black text-points-gold bg-points-gold/15 px-1.5 py-0.5 rounded">
+                  C ×2
+                </span>
+              )}
             </span>
 
             {/* Points */}

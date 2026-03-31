@@ -46,12 +46,15 @@ export async function GET(
         awayTeamId: room.awayTeamId,
         homeTeamName: room.homeTeamName,
         awayTeamName: room.awayTeamName,
+        homeTeamLogo: room.homeTeamLogo,
+        awayTeamLogo: room.awayTeamLogo,
         matchDate: room.matchDate.toISOString(),
         players: room.players.map(p => ({
           id: p.id,
           displayName: p.displayName,
           isCreator: p.isCreator,
           totalPoints: p.totalPoints,
+          captainSlot: p.captainSlot,
           picks: p.picks.map(pick => ({
             footballPlayerId: pick.footballPlayerId,
             footballPlayerName: pick.footballPlayerName,
@@ -64,7 +67,12 @@ export async function GET(
         })),
       },
       currentPlayer: currentPlayer
-        ? { id: currentPlayer.id, displayName: currentPlayer.displayName, hasPicks: currentPlayer.picks.length > 0 }
+        ? {
+            id: currentPlayer.id,
+            displayName: currentPlayer.displayName,
+            hasPicks: currentPlayer.picks.length > 0,
+            captainSlot: currentPlayer.captainSlot,
+          }
         : null,
       match: matchCache
         ? {
