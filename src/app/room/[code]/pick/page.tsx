@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Header from '@/components/Header';
 import PitchPicker from '@/components/PitchPicker';
+import ShareButton from '@/components/ShareButton';
 import type { NormalizedPlayer, PickData, RoomData } from '@/types';
 
 export default function PickTeamPage() {
@@ -33,7 +33,6 @@ export default function PickTeamPage() {
 
         setRoom(roomData.room);
 
-        // Load existing picks if user has them
         if (roomData.currentPlayer?.hasPicks) {
           const playerData = roomData.room.players.find(
             (p: any) => p.id === roomData.currentPlayer.id
@@ -46,7 +45,6 @@ export default function PickTeamPage() {
           }
         }
 
-        // Fetch squads
         const squadsRes = await fetch(`/api/squads/${roomData.room.fixtureId}`);
         const squadsData = await squadsRes.json();
         setPlayers(squadsData.players || []);
@@ -87,7 +85,12 @@ export default function PickTeamPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <Header showBack backHref={`/room/${code}`} />
+        <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
+          <a href="/" className="flex items-baseline gap-0.5">
+            <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+          </a>
+        </header>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
@@ -101,7 +104,12 @@ export default function PickTeamPage() {
   if (error && !room) {
     return (
       <div className="flex flex-col flex-1">
-        <Header showBack backHref="/" />
+        <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
+          <a href="/" className="flex items-baseline gap-0.5">
+            <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+          </a>
+        </header>
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <p className="text-live-red text-sm">{error}</p>
@@ -116,10 +124,27 @@ export default function PickTeamPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <Header showBack backHref={`/room/${code}`} />
+      {/* Header with logo + share */}
+      <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <a
+            href={`/room/${code}`}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-charcoal text-white/70 hover:text-white transition-colors mr-1"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </a>
+          <a href="/" className="flex items-baseline gap-0.5">
+            <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+          </a>
+        </div>
+        <ShareButton roomCode={code} />
+      </header>
 
       {/* Title */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-3 pb-1">
         <h1 className="text-lg font-black text-white">Pick Your Team</h1>
         {room && (
           <p className="text-xs text-white/40 mt-0.5">

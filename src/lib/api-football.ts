@@ -72,7 +72,7 @@ export const LEAGUES: League[] = [
   { id: 3, name: 'Europa League', season: 2025 },
   { id: 45, name: 'FA Cup', season: 2025 },
   { id: 251, name: "Women's Champions League", season: 2025 },
-  { id: 10, name: 'Friendlies', season: 2025 },
+  { id: 10, name: 'Friendlies', season: 2026 },
   { id: 1, name: 'World Cup', season: 2026 },
 ];
 
@@ -83,7 +83,7 @@ const FALLBACK_SEASONS: Record<number, number> = {
   3: 2024,
   45: 2024,
   251: 2024,
-  10: 2024,
+  10: 2025,
 };
 
 export async function getFixturesByLeague(

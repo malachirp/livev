@@ -39,7 +39,7 @@ export default function FixtureCard({ fixture, onSelect }: Props) {
 
       <div className="relative px-4 py-4">
         {/* League + Time */}
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-medium text-white/40 uppercase tracking-wide">
             {fixture.league.name}
           </span>
@@ -47,11 +47,6 @@ export default function FixtureCard({ fixture, onSelect }: Props) {
             {formatKickoffTime(fixture.fixture.date)}
           </span>
         </div>
-        {fixture.fixture.venue?.name && (
-          <p className="text-[10px] text-white/30 mb-2 truncate">
-            {fixture.fixture.venue.name}{fixture.fixture.venue.city ? `, ${fixture.fixture.venue.city}` : ''}
-          </p>
-        )}
 
         {/* Teams */}
         <div className="flex items-center justify-between">

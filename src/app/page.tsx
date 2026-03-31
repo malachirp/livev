@@ -101,7 +101,7 @@ export default function CreateGamePage() {
           Pick a match
         </h1>
         <p className="text-sm text-white/40 mt-1">
-          Create a 5-a-side fantasy game with friends for a single match
+          Create a 5-a-side fantasy game with friends
         </p>
       </div>
 

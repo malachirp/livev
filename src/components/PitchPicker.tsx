@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import type { NormalizedPlayer, PickData } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
 import ShirtIcon from './ShirtIcon';
-import ShareButton from './ShareButton';
 
 interface SlotConfig {
   index: number;
@@ -33,7 +32,7 @@ interface Props {
 
 export default function PitchPicker({ players, homeTeamId, awayTeamId, existingPicks, onSubmit, submitting, roomCode, existingCaptainSlot }: Props) {
   const [picks, setPicks] = useState<(PickData | null)[]>([null, null, null, null, null]);
-  const [captainSlot, setCaptainSlot] = useState<number>(0); // Default captain is FWD (slot 0)
+  const [captainSlot, setCaptainSlot] = useState<number>(0);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -58,7 +57,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
     return teamCount < 3;
   }, [picks]);
 
-  // Alphabetical, mixed teams
   const filteredPlayers = activeSlot !== null
     ? players
         .filter(p => p.position === SLOTS[activeSlot].position)
@@ -102,7 +100,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
     onSubmit(picks.filter(Boolean) as PickData[], captainSlot);
   };
 
-  // Find player number from squad data
   const getPlayerNumber = (footballPlayerId: number): number | null => {
     const p = players.find(pl => pl.id === footballPlayerId);
     return p?.number ?? null;
@@ -110,63 +107,54 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Team balance + share */}
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(homeTeamId).primary }} />
-            <span className="text-xs font-bold text-white/60">{homeCount}</span>
-          </div>
-          <span className="text-[10px] text-white/30 font-medium">TEAM BALANCE</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-white/60">{awayCount}</span>
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(awayTeamId).primary }} />
-          </div>
+      {/* Team balance - centered */}
+      <div className="flex items-center justify-center gap-3 px-4 py-2">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(homeTeamId).primary }} />
+          <span className="text-xs font-bold text-white/60">{homeCount}</span>
         </div>
-        <ShareButton roomCode={roomCode} />
-      </div>
-
-      {/* Pitch */}
-      <div className="pitch-bg rounded-2xl mx-4 relative" style={{ paddingBottom: '120%' }}>
-        {/* Pitch markings */}
-        <div className="absolute inset-0">
-          {/* Center circle */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border border-white/10" />
-          {/* Center line */}
-          <div className="absolute top-1/2 left-0 right-0 h-px bg-white/10" />
-          {/* Top penalty box */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-16 border-b border-l border-r border-white/10 rounded-b-lg" />
-          {/* Bottom penalty box */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border-t border-l border-r border-white/10 rounded-t-lg" />
-        </div>
-
-        {/* FWD - top area */}
-        <div className="absolute top-[8%] left-0 right-0 flex justify-center">
-          {renderSlot(0)}
-        </div>
-
-        {/* MID - middle, spread wide */}
-        <div className="absolute top-[33%] left-0 right-0 flex justify-between px-[12%]">
-          {renderSlot(1)}
-          {renderSlot(2)}
-        </div>
-
-        {/* DEF - below center */}
-        <div className="absolute top-[58%] left-0 right-0 flex justify-center">
-          {renderSlot(3)}
-        </div>
-
-        {/* GK - bottom */}
-        <div className="absolute top-[80%] left-0 right-0 flex justify-center">
-          {renderSlot(4)}
+        <span className="text-[10px] text-white/30 font-medium">TEAM BALANCE</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-white/60">{awayCount}</span>
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getTeamColours(awayTeamId).primary }} />
         </div>
       </div>
 
       {/* Captain hint */}
-      <div className="px-4 pt-3 pb-1">
-        <p className="text-[10px] text-white/30 text-center">
-          Tap a player on the pitch to make them captain (C) for 1.5x points
-        </p>
+      <p className="text-[10px] text-white/30 text-center px-4 pb-2">
+        Tap a player to make them captain (C) for 1.5x points
+      </p>
+
+      {/* Pitch - tighter aspect ratio to fit on screen */}
+      <div className="pitch-bg rounded-2xl mx-3 relative" style={{ paddingBottom: '105%' }}>
+        {/* Pitch markings */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/10" />
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-white/10" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-14 border-b border-l border-r border-white/10 rounded-b-lg" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-36 h-14 border-t border-l border-r border-white/10 rounded-t-lg" />
+        </div>
+
+        {/* FWD - top */}
+        <div className="absolute top-[6%] left-0 right-0 flex justify-center">
+          {renderSlot(0)}
+        </div>
+
+        {/* MID - spread */}
+        <div className="absolute top-[30%] left-0 right-0 flex justify-between px-[15%]">
+          {renderSlot(1)}
+          {renderSlot(2)}
+        </div>
+
+        {/* DEF */}
+        <div className="absolute top-[55%] left-0 right-0 flex justify-center">
+          {renderSlot(3)}
+        </div>
+
+        {/* GK */}
+        <div className="absolute top-[78%] left-0 right-0 flex justify-center">
+          {renderSlot(4)}
+        </div>
       </div>
 
       {/* Bottom sheet - player selector */}
@@ -214,22 +202,18 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
                             : 'bg-charcoal/40 hover:bg-charcoal/60'
                         }`}
                       >
-                        {/* Mini shirt */}
                         <ShirtIcon
                           primaryColor={teamColours.primary}
                           secondaryColor={teamColours.secondary}
                           number={player.number}
                           size={32}
                         />
-
-                        {/* Player info */}
                         <div className="flex-1 text-left min-w-0">
                           <span className="text-sm font-semibold text-white block truncate">
                             {player.name}
                           </span>
                           <span className="text-[10px] text-white/40">{player.teamName}</span>
                         </div>
-
                         {player.number && (
                           <span className="text-xs font-bold text-white/20">#{player.number}</span>
                         )}
@@ -244,7 +228,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
       )}
 
       {/* Submit button */}
-      <div className="sticky bottom-0 px-4 py-4 bg-gradient-to-t from-navy via-navy to-transparent">
+      <div className="sticky bottom-0 px-4 py-3 bg-gradient-to-t from-navy via-navy to-transparent">
         <button
           onClick={handleSubmit}
           disabled={!allFilled || submitting}
@@ -272,7 +256,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
         key={slot.index}
         onClick={() => {
           if (pick) {
-            // If already filled, tapping toggles captain
             handleToggleCaptain(slotIndex);
           } else {
             setActiveSlot(slotIndex);
@@ -280,7 +263,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
           }
         }}
         onDoubleClick={() => {
-          // Double-tap to re-pick
           setActiveSlot(slotIndex);
           setSearchQuery('');
         }}
@@ -294,24 +276,22 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
               primaryColor={teamColours!.primary}
               secondaryColor={teamColours!.secondary}
               number={playerNumber}
-              size={56}
+              size={64}
             />
-            {/* Captain badge */}
             {isCaptain && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-points-gold flex items-center justify-center shadow-lg">
-                <span className="text-[10px] font-black text-navy">C</span>
+              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-points-gold flex items-center justify-center shadow-lg">
+                <span className="text-[11px] font-black text-navy">C</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/30 bg-white/5 flex items-center justify-center">
-            <span className="text-xs font-bold text-white/40">{slot.label}</span>
+          <div className="w-16 h-16 rounded-xl border-2 border-dashed border-white/30 bg-white/5 flex items-center justify-center">
+            <span className="text-sm font-bold text-white/40">{slot.label}</span>
           </div>
         )}
 
-        {/* Player name */}
-        <span className={`text-[10px] font-semibold mt-1 max-w-[70px] truncate text-center ${
-          isCaptain ? 'text-points-gold' : 'text-white/60'
+        <span className={`text-[11px] font-semibold mt-1 max-w-[80px] truncate text-center ${
+          isCaptain ? 'text-points-gold' : 'text-white/70'
         }`}>
           {pick ? pick.footballPlayerName.split(' ').pop() : slot.label}
         </span>
