@@ -28,6 +28,9 @@ export async function POST(
       where: { fixtureId: room.fixtureId },
     });
 
+    // Editing window closes 5 minutes before kickoff
+    const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
+
     // Allow picks only when match hasn't started (NS or TBD)
     if (matchCache && !['NS', 'TBD'].includes(matchCache.status)) {
       return NextResponse.json(
@@ -36,12 +39,11 @@ export async function POST(
       );
     }
 
-    // Fallback: if no cache exists or cache is stale, also check matchDate
-    // Use a buffer of 2 minutes to account for cache staleness
-    const kickoffBuffer = 2 * 60 * 1000;
-    if (new Date(room.matchDate).getTime() + kickoffBuffer <= Date.now() && (!matchCache || matchCache.status === 'NS')) {
+    // Lock picks 5 minutes before kickoff
+    const kickoffTime = new Date(room.matchDate).getTime();
+    if (Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS) {
       return NextResponse.json(
-        { error: 'Cannot pick team after kick off time' },
+        { error: 'Teams lock 5 minutes before kick off' },
         { status: 400 }
       );
     }

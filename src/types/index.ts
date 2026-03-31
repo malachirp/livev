@@ -226,6 +226,7 @@ export interface PlayerData {
   isCreator: boolean;
   totalPoints: number;
   captainSlot: number;
+  hasPicks?: boolean;
   picks: PickSlot[];
 }
 

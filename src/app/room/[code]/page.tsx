@@ -12,7 +12,7 @@ import type { RoomData, PlayerData, ApiFixtureEvent } from '@/types';
 import HelpButton from '@/components/HelpButton';
 
 interface RoomResponse {
-  room: RoomData;
+  room: RoomData & { teamsLocked: boolean; lockTime: string };
   currentPlayer: { id: string; displayName: string; hasPicks: boolean } | null;
   match: { status: string; homeScore: number | null; awayScore: number | null; minute: number | null };
 }
@@ -25,6 +25,7 @@ interface LiveResponse {
     minute: number | null;
     events: ApiFixtureEvent[];
   };
+  teamsLocked: boolean;
   leaderboard: PlayerData[];
 }
 
@@ -37,6 +38,9 @@ export default function LiveRoomPage() {
   const [currentPlayer, setCurrentPlayer] = useState<RoomResponse['currentPlayer']>(null);
   const [match, setMatch] = useState<RoomResponse['match']>({ status: 'NS', homeScore: null, awayScore: null, minute: null });
   const [leaderboard, setLeaderboard] = useState<PlayerData[]>([]);
+  const [teamsLocked, setTeamsLocked] = useState(false);
+  const [lockTime, setLockTime] = useState<string | null>(null);
+  const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +64,8 @@ export default function LiveRoomPage() {
         setCurrentPlayer(data.currentPlayer);
         setMatch(data.match);
         setLeaderboard(data.room.players);
+        setTeamsLocked(data.room.teamsLocked);
+        setLockTime(data.room.lockTime);
         setLoading(false);
       } catch {
         setError('Room not found');
@@ -79,6 +85,7 @@ export default function LiveRoomPage() {
       const data: LiveResponse = await res.json();
       setMatch(data.match);
       setLeaderboard(data.leaderboard);
+      if (data.teamsLocked !== undefined) setTeamsLocked(data.teamsLocked);
     } catch {
       // Silently fail on poll errors
     }
@@ -115,6 +122,33 @@ export default function LiveRoomPage() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [room, match.status, pollLive]);
+
+  // Countdown timer to lock time
+  useEffect(() => {
+    if (!lockTime || teamsLocked) {
+      setLockCountdown(null);
+      return;
+    }
+
+    function updateCountdown() {
+      const diff = new Date(lockTime!).getTime() - Date.now();
+      if (diff <= 0) {
+        setLockCountdown(null);
+        setTeamsLocked(true);
+        return;
+      }
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      if (h > 0) setLockCountdown(`${h}h ${m}m`);
+      else if (m > 0) setLockCountdown(`${m}m ${s}s`);
+      else setLockCountdown(`${s}s`);
+    }
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [lockTime, teamsLocked]);
 
   const handleJoin = async () => {
     if (!joinName.trim()) return;
@@ -177,7 +211,7 @@ export default function LiveRoomPage() {
   const live = isMatchLive(match.status);
   const finished = isMatchFinished(match.status);
   const notStarted = match.status === 'NS';
-  const matchStartedOrFinished = !notStarted;
+  const canEdit = !teamsLocked; // Editing closes 5 min before kickoff
 
   return (
     <div className="flex flex-col flex-1 pb-24">
@@ -226,16 +260,24 @@ export default function LiveRoomPage() {
         matchDate={room.matchDate}
       />
 
-      {/* Player count */}
+      {/* Player count + lock status */}
       <div className="px-4 pt-4 flex items-center justify-between">
         <span className="text-xs font-bold text-white/40 uppercase tracking-wider">
           {leaderboard.length} player{leaderboard.length !== 1 ? 's' : ''}
         </span>
-        {finished && (
+        {finished ? (
           <span className="text-xs font-bold text-points-gold bg-points-gold/10 px-3 py-1 rounded-full">
             Final Results
           </span>
-        )}
+        ) : !teamsLocked && lockCountdown ? (
+          <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full">
+            Teams reveal in {lockCountdown}
+          </span>
+        ) : teamsLocked && notStarted ? (
+          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-full">
+            Teams revealed
+          </span>
+        ) : null}
       </div>
 
       {/* Leaderboard */}
@@ -245,10 +287,11 @@ export default function LiveRoomPage() {
         awayTeamId={room.awayTeamId}
         homeTeamName={room.homeTeamName}
         awayTeamName={room.awayTeamName}
+        teamsLocked={teamsLocked}
       />
 
-      {/* Bottom action bar — only show join/pick/edit before kick off */}
-      {!isInGame && notStarted && (
+      {/* Bottom action bar — only show join/pick/edit before teams lock (5 min before KO) */}
+      {!isInGame && canEdit && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button
@@ -261,7 +304,7 @@ export default function LiveRoomPage() {
         </div>
       )}
 
-      {isInGame && !hasPicks && notStarted && (
+      {isInGame && !hasPicks && canEdit && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button
@@ -274,7 +317,7 @@ export default function LiveRoomPage() {
         </div>
       )}
 
-      {isInGame && hasPicks && notStarted && (
+      {isInGame && hasPicks && canEdit && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button

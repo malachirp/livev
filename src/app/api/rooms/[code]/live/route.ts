@@ -148,6 +148,11 @@ export async function GET(
 
     const events = (matchCache?.events as any[]) || [];
 
+    // Teams are revealed 5 minutes before kickoff
+    const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
+    const kickoffTime = new Date(room.matchDate).getTime();
+    const teamsLocked = Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS;
+
     return NextResponse.json({
       match: {
         status: matchCache?.status || 'NS',
@@ -156,13 +161,16 @@ export async function GET(
         minute: matchCache?.minute ?? null,
         events,
       },
+      teamsLocked,
       leaderboard: updatedRoom?.players.map(p => ({
         id: p.id,
         displayName: p.displayName,
         isCreator: p.isCreator,
         totalPoints: p.totalPoints,
         captainSlot: p.captainSlot,
-        picks: p.picks.map(pick => ({
+        hasPicks: p.picks.length > 0,
+        // Hide other players' picks before lock
+        picks: teamsLocked ? p.picks.map(pick => ({
           footballPlayerId: pick.footballPlayerId,
           footballPlayerName: pick.footballPlayerName,
           teamId: pick.teamId,
@@ -170,7 +178,7 @@ export async function GET(
           slotIndex: pick.slotIndex,
           points: pick.points,
           pointsBreakdown: pick.pointsBreakdown,
-        })),
+        })) : [],
       })) || [],
     });
   } catch (error) {

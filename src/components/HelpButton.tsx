@@ -71,7 +71,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                 <li>Clean sheets and win/loss bonuses are awarded at full time</li>
                 <li>Everything else updates live during the match</li>
                 <li>Captain gets 2x total points</li>
-                <li>Teams lock at kick off — no changes once it starts</li>
+                <li>Teams lock 5 minutes before kick off — no edits after that</li>
+                <li>Other players&apos; teams are hidden until lock, then everyone&apos;s picks are revealed</li>
                 <li>For smaller fixtures, some detailed stats (tackles, dribbles etc.) may not be available — the basics like goals and assists will always work</li>
               </ul>
             </div>

@@ -12,6 +12,7 @@ interface Props {
   awayTeamId: number;
   homeTeamName?: string;
   awayTeamName?: string;
+  teamsLocked?: boolean;
 }
 
 function getDominantTeamId(picks: PlayerData['picks']): number | null {
@@ -22,7 +23,7 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
   return Number(sorted[0][0]);
 }
 
-export default function Leaderboard({ players, currentSessionToken, homeTeamId, awayTeamId, homeTeamName, awayTeamName }: Props) {
+export default function Leaderboard({ players, currentSessionToken, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -40,16 +41,18 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
       <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Leaderboard</h3>
       {sorted.map((player, index) => {
         const isExpanded = expandedId === player.id;
-        const hasPicks = player.picks.length > 0;
+        // hasPicks from API tells us if they've picked (even when picks are hidden)
+        const hasPicks = player.hasPicks ?? player.picks.length > 0;
+        const picksVisible = player.picks.length > 0;
         const rank = index + 1;
-        const dominantTeamId = getDominantTeamId(player.picks);
+        const dominantTeamId = picksVisible ? getDominantTeamId(player.picks) : null;
         const dominantName = dominantTeamId === homeTeamId ? homeTeamName : dominantTeamId === awayTeamId ? awayTeamName : undefined;
         const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId, dominantName).primary : null;
 
         return (
           <div key={player.id} className="animate-fade-in">
             <button
-              onClick={() => hasPicks && setExpandedId(isExpanded ? null : player.id)}
+              onClick={() => picksVisible && setExpandedId(isExpanded ? null : player.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
                 isExpanded ? 'ring-1 ring-accent/20' : 'hover:brightness-110'
               }`}
@@ -88,6 +91,9 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
                 {!hasPicks && (
                   <span className="text-[10px] text-white/30">Picking team...</span>
                 )}
+                {hasPicks && !picksVisible && (
+                  <span className="text-[10px] text-white/30">Team locked in</span>
+                )}
               </div>
 
               {/* Points */}
@@ -101,7 +107,7 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
               </div>
 
               {/* Expand arrow */}
-              {hasPicks && (
+              {picksVisible && (
                 <svg
                   width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -113,7 +119,7 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
             </button>
 
             {/* Expanded team sheet */}
-            {isExpanded && hasPicks && (
+            {isExpanded && picksVisible && (
               <div className="mt-1 animate-slide-up">
                 <TeamSheet picks={player.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} homeTeamName={homeTeamName} awayTeamName={awayTeamName} captainSlot={player.captainSlot} />
               </div>
