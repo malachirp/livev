@@ -3,6 +3,7 @@ import type {
   ApiSquadResponse,
   ApiFixtureEvent,
   ApiFixturePlayersResponse,
+  ApiLineupResponse,
   League,
 } from '@/types';
 
@@ -50,9 +51,11 @@ interface CacheEntry<T> {
 
 const fixtureCache = new Map<string, CacheEntry<ApiFixture[]>>();
 const squadCache = new Map<number, CacheEntry<ApiSquadResponse>>();
+const lineupCache = new Map<number, CacheEntry<ApiLineupResponse[] | null>>();
 
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const LINEUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (short so we pick up lineups when released)
 
 function getCached<T>(cache: Map<string | number, CacheEntry<T>>, key: string | number): T | null {
   const entry = cache.get(key);
@@ -229,4 +232,28 @@ export async function getFixtureEvents(fixtureId: number): Promise<ApiFixtureEve
 
 export async function getFixturePlayerStats(fixtureId: number): Promise<ApiFixturePlayersResponse[]> {
   return apiFetch<ApiFixturePlayersResponse>('/fixtures/players', { fixture: fixtureId });
+}
+
+export async function getFixtureLineups(fixtureId: number): Promise<ApiLineupResponse[] | null> {
+  // Check cache manually since getCached can't distinguish "cached null" from "not cached"
+  const entry = lineupCache.get(fixtureId);
+  if (entry && Date.now() <= entry.expiresAt) {
+    console.log(`[API-Football] Cache hit for lineups: fixture=${fixtureId}`);
+    return entry.data;
+  }
+  if (entry) lineupCache.delete(fixtureId);
+
+  try {
+    const results = await apiFetch<ApiLineupResponse>('/fixtures/lineups', { fixture: fixtureId });
+    if (!results.length) {
+      // No lineups released yet — cache the empty result briefly so we don't hammer the API
+      lineupCache.set(fixtureId, { data: null, expiresAt: Date.now() + LINEUP_CACHE_TTL });
+      return null;
+    }
+    lineupCache.set(fixtureId, { data: results, expiresAt: Date.now() + LINEUP_CACHE_TTL });
+    return results;
+  } catch (err) {
+    console.error(`[API-Football] Failed to fetch lineups for fixture ${fixtureId}:`, err);
+    return null;
+  }
 }

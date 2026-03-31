@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import PitchPicker from '@/components/PitchPicker';
 import ShareButton from '@/components/ShareButton';
@@ -19,6 +19,31 @@ export default function PickTeamPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasLineups, setHasLineups] = useState(false);
+  const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
+  const fixtureIdRef = useRef<number | null>(null);
+
+  // Poll for lineup updates when close to kickoff
+  const refreshSquads = useCallback(async () => {
+    if (!fixtureIdRef.current) return;
+    try {
+      const squadsRes = await fetch(`/api/squads/${fixtureIdRef.current}`);
+      const squadsData = await squadsRes.json();
+      if (squadsData.players) {
+        setPlayers(squadsData.players);
+      }
+      if (squadsData.hasLineups && !hasLineups) {
+        setHasLineups(true);
+        // Stop polling — we got the lineups
+        if (lineupPollRef.current) {
+          clearInterval(lineupPollRef.current);
+          lineupPollRef.current = null;
+        }
+      }
+    } catch {
+      // Silently fail on background refresh
+    }
+  }, [hasLineups]);
 
   useEffect(() => {
     async function load() {
@@ -33,6 +58,7 @@ export default function PickTeamPage() {
         }
 
         setRoom(roomData.room);
+        fixtureIdRef.current = roomData.room.fixtureId;
 
         if (roomData.currentPlayer?.hasPicks) {
           const playerData = roomData.room.players.find(
@@ -49,6 +75,15 @@ export default function PickTeamPage() {
         const squadsRes = await fetch(`/api/squads/${roomData.room.fixtureId}`);
         const squadsData = await squadsRes.json();
         setPlayers(squadsData.players || []);
+        setHasLineups(squadsData.hasLineups || false);
+
+        // Start polling for lineups if within 90 min of kickoff and lineups not yet available
+        const kickoff = new Date(roomData.room.matchDate).getTime();
+        const msUntilKickoff = kickoff - Date.now();
+        if (msUntilKickoff <= 90 * 60 * 1000 && msUntilKickoff > 0 && !squadsData.hasLineups) {
+          // Poll every 2 minutes for lineup release
+          lineupPollRef.current = setInterval(refreshSquads, 2 * 60 * 1000);
+        }
 
         setLoading(false);
       } catch (err: any) {
@@ -58,7 +93,11 @@ export default function PickTeamPage() {
     }
 
     load();
-  }, [code]);
+
+    return () => {
+      if (lineupPollRef.current) clearInterval(lineupPollRef.current);
+    };
+  }, [code, refreshSquads]);
 
   const handleSubmit = async (picks: PickData[], captainSlot: number) => {
     setSubmitting(true);

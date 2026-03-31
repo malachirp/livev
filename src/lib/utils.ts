@@ -25,6 +25,33 @@ export function normalizePosition(apiPosition: string): 'GK' | 'DEF' | 'MID' | '
   }
 }
 
+// Normalize position codes from the /fixtures/lineups endpoint (G, D, M, F)
+export function normalizeLineupPosition(pos: string): 'GK' | 'DEF' | 'MID' | 'FWD' {
+  switch (pos) {
+    case 'G':
+      return 'GK';
+    case 'D':
+      return 'DEF';
+    case 'M':
+      return 'MID';
+    case 'F':
+      return 'FWD';
+    default:
+      return 'MID';
+  }
+}
+
+// Sanitize player names from the API — fix HTML entities and encoding issues
+export function sanitizePlayerName(name: string): string {
+  return name
+    .replace(/&apos;|&oapos;|&#0?39;|&#x27;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ');
+}
+
 export function formatMatchDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

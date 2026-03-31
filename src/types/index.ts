@@ -159,6 +159,32 @@ export interface League {
   logo?: string;
 }
 
+// API-Football /fixtures/lineups response types
+export interface ApiLineupPlayer {
+  id: number;
+  name: string;
+  number: number;
+  pos: string; // G, D, M, F
+  grid: string | null;
+}
+
+export interface ApiLineupResponse {
+  team: {
+    id: number;
+    name: string;
+    logo: string;
+    colors: any | null;
+  };
+  coach: {
+    id: number;
+    name: string;
+    photo: string;
+  };
+  formation: string;
+  startXI: Array<{ player: ApiLineupPlayer }>;
+  substitutes: Array<{ player: ApiLineupPlayer }>;
+}
+
 export interface NormalizedPlayer {
   id: number;
   name: string;
