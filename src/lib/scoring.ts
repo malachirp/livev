@@ -4,6 +4,12 @@ export interface PointsBreakdown {
   appearance: number;
   goals: number;
   assists: number;
+  shotsOnTarget: number;
+  keyPasses: number;
+  tackles: number;
+  interceptions: number;
+  dribblesWon: number;
+  foulsCommitted: number;
   cleanSheet: number;
   saves: number;
   penaltySave: number;
@@ -12,80 +18,31 @@ export interface PointsBreakdown {
   ownGoal: number;
   penaltyMiss: number;
   resultBonus: number;
-}
-
-export interface DetailedStats {
   minutesPlayed: number | null;
   rating: string | null;
-  shotsTotal: number | null;
-  shotsOnTarget: number | null;
-  passesTotal: number | null;
-  passesKey: number | null;
-  passAccuracy: string | null;
-  tacklesTotal: number | null;
-  interceptions: number | null;
-  blocks: number | null;
-  duelsTotal: number | null;
-  duelsWon: number | null;
-  dribblesAttempted: number | null;
-  dribblesSuccessful: number | null;
-  foulsDrawn: number | null;
-  foulsCommitted: number | null;
-  goalsScored: number | null;
-  goalsConceded: number | null;
-  assistsTotal: number | null;
-  savesTotal: number | null;
-  penaltyScored: number | null;
-  penaltyMissed: number | null;
-  penaltySaved: number | null;
 }
 
 export const SCORING = {
-  APPEARANCE: 1,
-  GOAL: 6,
-  ASSIST: 4,
-  CLEAN_SHEET_GK: 5,
-  CLEAN_SHEET_DEF: 3,
+  APPEARANCE: 2,
+  GOAL: 8,
+  ASSIST: 5,
+  SHOT_ON_TARGET: 1,
+  KEY_PASS: 1,
+  TACKLES_PER_3: 1,
+  INTERCEPTIONS_PER_3: 1,
+  DRIBBLES_PER_2: 1,
+  FOULS_COMMITTED_PER_3: -1,
+  CLEAN_SHEET_GK: 6,
+  CLEAN_SHEET_DEF: 4,
   SAVES_PER_3: 2,
-  PENALTY_SAVE: 5,
-  YELLOW_CARD: -1,
-  RED_CARD: -3,
-  OWN_GOAL: -3,
-  PENALTY_MISS: -3,
-  WIN_BONUS: 1,
-  LOSS_PENALTY: -1,
+  PENALTY_SAVE: 6,
+  YELLOW_CARD: -2,
+  RED_CARD: -4,
+  OWN_GOAL: -4,
+  PENALTY_MISS: -4,
+  WIN_BONUS: 2,
+  LOSS_PENALTY: -2,
 } as const;
-
-function extractDetailedStats(playerStats: ApiPlayerStats | null): DetailedStats | null {
-  if (!playerStats || !playerStats.statistics[0]) return null;
-
-  const stats = playerStats.statistics[0];
-  return {
-    minutesPlayed: stats.games.minutes,
-    rating: stats.games.rating,
-    shotsTotal: stats.shots?.total ?? null,
-    shotsOnTarget: stats.shots?.on ?? null,
-    passesTotal: stats.passes.total,
-    passesKey: stats.passes.key,
-    passAccuracy: stats.passes.accuracy,
-    tacklesTotal: stats.tackles.total,
-    interceptions: stats.tackles.interceptions ?? null,
-    blocks: stats.tackles.blocks ?? null,
-    duelsTotal: stats.duels.total,
-    duelsWon: stats.duels.won,
-    dribblesAttempted: stats.dribbles.attempts,
-    dribblesSuccessful: stats.dribbles.success,
-    foulsDrawn: stats.fouls.drawn,
-    foulsCommitted: stats.fouls.committed,
-    goalsScored: stats.goals.total,
-    goalsConceded: stats.goals.conceded,
-    assistsTotal: stats.goals.assists,
-    savesTotal: stats.goals.saves,
-    penaltyScored: stats.penalty.scored,
-    penaltyMissed: stats.penalty.missed,
-    penaltySaved: stats.penalty.saved,
-  };
-}
 
 export function calculatePlayerPoints(
   footballPlayerId: number,
@@ -98,11 +55,17 @@ export function calculatePlayerPoints(
   awayScore: number | null,
   homeTeamId: number,
   awayTeamId: number
-): { total: number; breakdown: PointsBreakdown; detailedStats: DetailedStats | null } {
+): { total: number; breakdown: PointsBreakdown } {
   const breakdown: PointsBreakdown = {
     appearance: 0,
     goals: 0,
     assists: 0,
+    shotsOnTarget: 0,
+    keyPasses: 0,
+    tackles: 0,
+    interceptions: 0,
+    dribblesWon: 0,
+    foulsCommitted: 0,
     cleanSheet: 0,
     saves: 0,
     penaltySave: 0,
@@ -111,6 +74,8 @@ export function calculatePlayerPoints(
     ownGoal: 0,
     penaltyMiss: 0,
     resultBonus: 0,
+    minutesPlayed: null,
+    rating: null,
   };
 
   // Find player stats
@@ -123,12 +88,11 @@ export function calculatePlayerPoints(
     }
   }
 
-  // Extract detailed stats for display
-  const detailedStats = extractDetailedStats(playerStats);
-
   // Appearance: played any minutes
   if (playerStats && playerStats.statistics[0]?.games.minutes) {
     breakdown.appearance = SCORING.APPEARANCE;
+    breakdown.minutesPlayed = playerStats.statistics[0].games.minutes;
+    breakdown.rating = playerStats.statistics[0].games.rating;
   }
 
   // Goals from events (more reliable than stats for real-time)
@@ -166,11 +130,47 @@ export function calculatePlayerPoints(
   );
   breakdown.redCard = redCards.length * SCORING.RED_CARD;
 
-  // GK/DEF specific: saves and clean sheets
+  // Stats-based scoring
   if (playerStats && playerStats.statistics[0]) {
     const stats = playerStats.statistics[0];
 
-    // Saves (GK only)
+    // Shots on target
+    const shotsOn = stats.shots?.on ?? 0;
+    if (shotsOn > 0) {
+      breakdown.shotsOnTarget = shotsOn * SCORING.SHOT_ON_TARGET;
+    }
+
+    // Key passes
+    const keyPasses = stats.passes.key ?? 0;
+    if (keyPasses > 0) {
+      breakdown.keyPasses = keyPasses * SCORING.KEY_PASS;
+    }
+
+    // Tackles (every 3)
+    const tacklesTotal = stats.tackles.total ?? 0;
+    if (tacklesTotal >= 3) {
+      breakdown.tackles = Math.floor(tacklesTotal / 3) * SCORING.TACKLES_PER_3;
+    }
+
+    // Interceptions (every 3)
+    const interceptionsTotal = stats.tackles.interceptions ?? 0;
+    if (interceptionsTotal >= 3) {
+      breakdown.interceptions = Math.floor(interceptionsTotal / 3) * SCORING.INTERCEPTIONS_PER_3;
+    }
+
+    // Successful dribbles (every 2)
+    const dribblesSuccess = stats.dribbles.success ?? 0;
+    if (dribblesSuccess >= 2) {
+      breakdown.dribblesWon = Math.floor(dribblesSuccess / 2) * SCORING.DRIBBLES_PER_2;
+    }
+
+    // Fouls committed (every 3 = -1)
+    const foulsCommitted = stats.fouls.committed ?? 0;
+    if (foulsCommitted >= 3) {
+      breakdown.foulsCommitted = Math.floor(foulsCommitted / 3) * SCORING.FOULS_COMMITTED_PER_3;
+    }
+
+    // Saves (GK only, every 3)
     if (pickPosition === 'GK' && stats.goals.saves) {
       const savesBonuses = Math.floor(stats.goals.saves / 3);
       breakdown.saves = savesBonuses * SCORING.SAVES_PER_3;
@@ -209,9 +209,10 @@ export function calculatePlayerPoints(
     } else if (teamScore < opponentScore) {
       breakdown.resultBonus = SCORING.LOSS_PENALTY;
     }
-    // Draw: resultBonus stays 0
   }
 
-  const total = Object.values(breakdown).reduce((sum, v) => sum + v, 0);
-  return { total, breakdown, detailedStats };
+  // Total: sum only the numeric scoring fields (exclude minutesPlayed and rating)
+  const { minutesPlayed: _m, rating: _r, ...scoringFields } = breakdown;
+  const total = Object.values(scoringFields).reduce((sum, v) => sum + (v as number), 0);
+  return { total, breakdown };
 }

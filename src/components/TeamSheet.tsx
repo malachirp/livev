@@ -4,29 +4,6 @@ import { useState } from 'react';
 import type { PickSlot } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
 
-interface DetailedStats {
-  minutesPlayed?: number | null;
-  rating?: string | null;
-  shotsTotal?: number | null;
-  shotsOnTarget?: number | null;
-  passesTotal?: number | null;
-  passesKey?: number | null;
-  passAccuracy?: string | null;
-  tacklesTotal?: number | null;
-  interceptions?: number | null;
-  blocks?: number | null;
-  duelsTotal?: number | null;
-  duelsWon?: number | null;
-  dribblesAttempted?: number | null;
-  dribblesSuccessful?: number | null;
-  foulsDrawn?: number | null;
-  foulsCommitted?: number | null;
-  goalsScored?: number | null;
-  goalsConceded?: number | null;
-  assistsTotal?: number | null;
-  savesTotal?: number | null;
-}
-
 interface Props {
   picks: PickSlot[];
   homeTeamId: number;
@@ -43,29 +20,26 @@ const POSITION_LABELS: Record<string, string> = {
   FWD: 'FWD',
 };
 
-const BREAKDOWN_LABELS: Record<string, string> = {
-  appearance: 'Appearance',
-  goals: 'Goals',
-  assists: 'Assists',
-  cleanSheet: 'Clean Sheet',
-  saves: 'Saves Bonus',
-  penaltySave: 'Penalty Save',
-  yellowCard: 'Yellow Card',
-  redCard: 'Red Card',
-  ownGoal: 'Own Goal',
-  penaltyMiss: 'Penalty Miss',
-  resultBonus: 'Result Bonus',
-};
-
-function StatRow({ label, value }: { label: string; value: string | number | null | undefined }) {
-  if (value === null || value === undefined) return null;
-  return (
-    <div className="flex justify-between items-center py-0.5">
-      <span className="text-[10px] text-white/40">{label}</span>
-      <span className="text-[10px] font-semibold text-white/60">{value}</span>
-    </div>
-  );
-}
+// Order and labels for the breakdown — scoring items only
+const BREAKDOWN_ITEMS: { key: string; label: string }[] = [
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'goals', label: 'Goals' },
+  { key: 'assists', label: 'Assists' },
+  { key: 'shotsOnTarget', label: 'Shots on Target' },
+  { key: 'keyPasses', label: 'Key Passes' },
+  { key: 'tackles', label: 'Tackles' },
+  { key: 'interceptions', label: 'Interceptions' },
+  { key: 'dribblesWon', label: 'Dribbles Won' },
+  { key: 'foulsCommitted', label: 'Fouls Committed' },
+  { key: 'cleanSheet', label: 'Clean Sheet' },
+  { key: 'saves', label: 'Saves Bonus' },
+  { key: 'penaltySave', label: 'Penalty Save' },
+  { key: 'yellowCard', label: 'Yellow Card' },
+  { key: 'redCard', label: 'Red Card' },
+  { key: 'ownGoal', label: 'Own Goal' },
+  { key: 'penaltyMiss', label: 'Penalty Miss' },
+  { key: 'resultBonus', label: 'Result Bonus' },
+];
 
 export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName, awayTeamName, captainSlot }: Props) {
   const sorted = [...picks].sort((a, b) => a.slotIndex - b.slotIndex);
@@ -85,13 +59,11 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName,
         const isCaptain = captainSlot !== undefined && pick.slotIndex === captainSlot;
         const isExpanded = expandedSlot === pick.slotIndex;
         const breakdown = pick.pointsBreakdown as (Record<string, any> | null);
-        const detailedStats: DetailedStats | null = breakdown?.detailedStats ?? null;
-        const hasDetails = breakdown || detailedStats;
 
         return (
           <div key={pick.slotIndex}>
             <button
-              onClick={() => hasDetails && setExpandedSlot(isExpanded ? null : pick.slotIndex)}
+              onClick={() => breakdown && setExpandedSlot(isExpanded ? null : pick.slotIndex)}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-navy/40"
             >
               {/* Position badge */}
@@ -126,7 +98,7 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName,
               </span>
 
               {/* Expand indicator */}
-              {hasDetails && (
+              {breakdown && (
                 <svg
                   width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -137,60 +109,38 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName,
               )}
             </button>
 
-            {/* Expanded detail */}
-            {isExpanded && hasDetails && (
+            {/* Expanded breakdown */}
+            {isExpanded && breakdown && (
               <div className="mx-3 mt-1 mb-1 bg-navy/60 rounded-lg px-3 py-2 animate-slide-up">
-                {/* Points breakdown */}
-                {breakdown && (
-                  <div className="mb-2">
-                    <div className="text-[9px] font-bold text-white/30 uppercase tracking-wider mb-1">Points</div>
-                    {Object.entries(BREAKDOWN_LABELS).map(([key, label]) => {
-                      const val = breakdown[key];
-                      if (!val || val === 0) return null;
-                      return (
-                        <div key={key} className="flex justify-between items-center py-0.5">
-                          <span className="text-[10px] text-white/40">{label}</span>
-                          <span className={`text-[10px] font-bold ${val > 0 ? 'text-accent' : 'text-live-red'}`}>
-                            {val > 0 ? '+' : ''}{val}
-                          </span>
-                        </div>
-                      );
-                    })}
+                {/* Minutes + rating header */}
+                {(breakdown.minutesPlayed || breakdown.rating) && (
+                  <div className="flex items-center gap-3 mb-1.5 pb-1.5 border-b border-white/5">
+                    {breakdown.minutesPlayed && (
+                      <span className="text-[10px] text-white/50">
+                        <span className="text-white/30">Min</span> {breakdown.minutesPlayed}&apos;
+                      </span>
+                    )}
+                    {breakdown.rating && (
+                      <span className="text-[10px] text-white/50">
+                        <span className="text-white/30">Rating</span> {breakdown.rating}
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {/* Detailed match stats */}
-                {detailedStats && (
-                  <div>
-                    <div className="text-[9px] font-bold text-white/30 uppercase tracking-wider mb-1 mt-1 border-t border-white/5 pt-2">
-                      Match Stats
+                {/* All scoring items */}
+                {BREAKDOWN_ITEMS.map(({ key, label }) => {
+                  const val = breakdown[key];
+                  if (!val || val === 0) return null;
+                  return (
+                    <div key={key} className="flex justify-between items-center py-0.5">
+                      <span className="text-[10px] text-white/40">{label}</span>
+                      <span className={`text-[10px] font-bold ${val > 0 ? 'text-accent' : 'text-live-red'}`}>
+                        {val > 0 ? '+' : ''}{val}
+                      </span>
                     </div>
-                    <StatRow label="Minutes" value={detailedStats.minutesPlayed} />
-                    <StatRow label="Rating" value={detailedStats.rating} />
-                    <StatRow label="Shots" value={detailedStats.shotsTotal} />
-                    <StatRow label="Shots on Target" value={detailedStats.shotsOnTarget} />
-                    <StatRow label="Passes" value={detailedStats.passesTotal} />
-                    <StatRow label="Key Passes" value={detailedStats.passesKey} />
-                    <StatRow label="Pass Accuracy" value={detailedStats.passAccuracy ? `${detailedStats.passAccuracy}%` : null} />
-                    <StatRow label="Tackles" value={detailedStats.tacklesTotal} />
-                    <StatRow label="Interceptions" value={detailedStats.interceptions} />
-                    <StatRow label="Blocks" value={detailedStats.blocks} />
-                    <StatRow label="Duels Won" value={
-                      detailedStats.duelsWon !== null && detailedStats.duelsTotal !== null
-                        ? `${detailedStats.duelsWon}/${detailedStats.duelsTotal}`
-                        : null
-                    } />
-                    <StatRow label="Dribbles" value={
-                      detailedStats.dribblesSuccessful !== null && detailedStats.dribblesAttempted !== null
-                        ? `${detailedStats.dribblesSuccessful}/${detailedStats.dribblesAttempted}`
-                        : null
-                    } />
-                    <StatRow label="Fouls Drawn" value={detailedStats.foulsDrawn} />
-                    <StatRow label="Fouls Committed" value={detailedStats.foulsCommitted} />
-                    <StatRow label="Saves" value={detailedStats.savesTotal} />
-                    <StatRow label="Goals Conceded" value={detailedStats.goalsConceded} />
-                  </div>
-                )}
+                  );
+                })}
               </div>
             )}
           </div>

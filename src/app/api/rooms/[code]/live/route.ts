@@ -56,7 +56,7 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
             let playerTotalPoints = 0;
 
             for (const pick of player.picks) {
-              const { total, breakdown, detailedStats } = calculatePlayerPoints(
+              const { total, breakdown } = calculatePlayerPoints(
                 pick.footballPlayerId,
                 pick.position,
                 pick.teamId,
@@ -77,7 +77,7 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
                 where: { id: pick.id },
                 data: {
                   points: finalPoints,
-                  pointsBreakdown: { ...breakdown, detailedStats } as any,
+                  pointsBreakdown: breakdown as any,
                 },
               });
 
