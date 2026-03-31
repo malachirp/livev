@@ -88,10 +88,11 @@ export default function AdminPage() {
     }
   }
 
-  async function fetchRooms() {
+  async function fetchRooms(pw?: string) {
+    const authPw = pw || adminPassword;
     try {
       const res = await fetch('/api/admin/rooms', {
-        headers: { 'x-admin-password': adminPassword },
+        headers: { 'x-admin-password': authPw },
       });
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
@@ -104,7 +105,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (authenticated && adminPassword) fetchRooms();
+    if (authenticated && adminPassword) fetchRooms(adminPassword);
   }, [authenticated, adminPassword]);
 
   async function handleDelete(roomId: string, roomCode: string) {
@@ -197,7 +198,7 @@ export default function AdminPage() {
             <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-1 rounded">ADMIN</span>
           </div>
           <button
-            onClick={() => { setLoading(true); fetchRooms(); }}
+            onClick={() => { setLoading(true); fetchRooms(adminPassword); }}
             className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
           >
             Refresh
