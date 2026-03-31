@@ -24,17 +24,17 @@ export interface PointsBreakdown {
 
 export const SCORING = {
   APPEARANCE: 2,
-  GOAL: 8,
-  ASSIST: 5,
+  GOAL: 10,
+  ASSIST: 6,
   SHOT_ON_TARGET: 1,
   KEY_PASS: 1,
-  TACKLES_PER_3: 1,
-  INTERCEPTIONS_PER_3: 1,
-  DRIBBLES_PER_2: 1,
-  FOULS_COMMITTED_PER_3: -1,
+  TACKLE: 1,
+  INTERCEPTION: 1,
+  DRIBBLE: 1,
+  FOUL_COMMITTED: -1,
+  SAVE: 1,
   CLEAN_SHEET_GK: 6,
   CLEAN_SHEET_DEF: 4,
-  SAVES_PER_3: 2,
   PENALTY_SAVE: 6,
   YELLOW_CARD: -2,
   RED_CARD: -4,
@@ -130,7 +130,7 @@ export function calculatePlayerPoints(
   );
   breakdown.redCard = redCards.length * SCORING.RED_CARD;
 
-  // Stats-based scoring
+  // Stats-based scoring — all per occurrence
   if (playerStats && playerStats.statistics[0]) {
     const stats = playerStats.statistics[0];
 
@@ -146,34 +146,33 @@ export function calculatePlayerPoints(
       breakdown.keyPasses = keyPasses * SCORING.KEY_PASS;
     }
 
-    // Tackles (every 3)
+    // Tackles
     const tacklesTotal = stats.tackles.total ?? 0;
-    if (tacklesTotal >= 3) {
-      breakdown.tackles = Math.floor(tacklesTotal / 3) * SCORING.TACKLES_PER_3;
+    if (tacklesTotal > 0) {
+      breakdown.tackles = tacklesTotal * SCORING.TACKLE;
     }
 
-    // Interceptions (every 3)
+    // Interceptions
     const interceptionsTotal = stats.tackles.interceptions ?? 0;
-    if (interceptionsTotal >= 3) {
-      breakdown.interceptions = Math.floor(interceptionsTotal / 3) * SCORING.INTERCEPTIONS_PER_3;
+    if (interceptionsTotal > 0) {
+      breakdown.interceptions = interceptionsTotal * SCORING.INTERCEPTION;
     }
 
-    // Successful dribbles (every 2)
+    // Successful dribbles
     const dribblesSuccess = stats.dribbles.success ?? 0;
-    if (dribblesSuccess >= 2) {
-      breakdown.dribblesWon = Math.floor(dribblesSuccess / 2) * SCORING.DRIBBLES_PER_2;
+    if (dribblesSuccess > 0) {
+      breakdown.dribblesWon = dribblesSuccess * SCORING.DRIBBLE;
     }
 
-    // Fouls committed (every 3 = -1)
+    // Fouls committed
     const foulsCommitted = stats.fouls.committed ?? 0;
-    if (foulsCommitted >= 3) {
-      breakdown.foulsCommitted = Math.floor(foulsCommitted / 3) * SCORING.FOULS_COMMITTED_PER_3;
+    if (foulsCommitted > 0) {
+      breakdown.foulsCommitted = foulsCommitted * SCORING.FOUL_COMMITTED;
     }
 
-    // Saves (GK only, every 3)
+    // Saves (GK only)
     if (pickPosition === 'GK' && stats.goals.saves) {
-      const savesBonuses = Math.floor(stats.goals.saves / 3);
-      breakdown.saves = savesBonuses * SCORING.SAVES_PER_3;
+      breakdown.saves = stats.goals.saves * SCORING.SAVE;
     }
 
     // Penalty saves

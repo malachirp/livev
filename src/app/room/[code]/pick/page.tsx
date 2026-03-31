@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import PitchPicker from '@/components/PitchPicker';
 import ShareButton from '@/components/ShareButton';
+import HelpButton from '@/components/HelpButton';
 import type { NormalizedPlayer, PickData, RoomData } from '@/types';
 
 export default function PickTeamPage() {
@@ -130,7 +131,10 @@ export default function PickTeamPage() {
           <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
           <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
         </a>
-        <ShareButton roomCode={code} />
+        <div className="flex items-center gap-2">
+          <ShareButton roomCode={code} />
+          <HelpButton />
+        </div>
       </header>
 
       {/* Title */}

@@ -9,6 +9,7 @@ import ShareButton from '@/components/ShareButton';
 import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
 import type { RoomData, PlayerData, ApiFixtureEvent } from '@/types';
+import HelpButton from '@/components/HelpButton';
 
 interface RoomResponse {
   room: RoomData;
@@ -175,6 +176,8 @@ export default function LiveRoomPage() {
   const hasPicks = currentPlayer?.hasPicks ?? false;
   const live = isMatchLive(match.status);
   const finished = isMatchFinished(match.status);
+  const notStarted = match.status === 'NS';
+  const matchStartedOrFinished = !notStarted;
 
   return (
     <div className="flex flex-col flex-1 pb-24">
@@ -193,7 +196,10 @@ export default function LiveRoomPage() {
               </span>
             )}
           </div>
-          <ShareButton roomCode={code} />
+          <div className="flex items-center gap-2">
+            <ShareButton roomCode={code} />
+            <HelpButton />
+          </div>
         </div>
         {/* Team colour gradient bar */}
         <div
@@ -241,8 +247,8 @@ export default function LiveRoomPage() {
         awayTeamName={room.awayTeamName}
       />
 
-      {/* Bottom action bar */}
-      {!isInGame && (
+      {/* Bottom action bar — only show join/pick/edit before kick off */}
+      {!isInGame && notStarted && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button
@@ -255,7 +261,7 @@ export default function LiveRoomPage() {
         </div>
       )}
 
-      {isInGame && !hasPicks && (
+      {isInGame && !hasPicks && notStarted && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button
@@ -268,7 +274,7 @@ export default function LiveRoomPage() {
         </div>
       )}
 
-      {isInGame && hasPicks && match.status === 'NS' && (
+      {isInGame && hasPicks && notStarted && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button

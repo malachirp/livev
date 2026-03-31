@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import HelpButton from './HelpButton';
 
 export default function Header({ showBack, backHref }: { showBack?: boolean; backHref?: string }) {
   return (
@@ -21,6 +22,7 @@ export default function Header({ showBack, backHref }: { showBack?: boolean; bac
           <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
         </Link>
       </div>
+      <HelpButton />
     </header>
   );
 }

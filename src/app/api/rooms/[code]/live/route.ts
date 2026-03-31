@@ -45,7 +45,8 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
       });
 
       // Recalculate points for ALL rooms using this fixture
-      if (matchStarted && events.length > 0) {
+      // Trigger on events OR playerStats — stats contain appearance/minutes data
+      if (matchStarted && (events.length > 0 || playerStats.length > 0)) {
         const rooms = await prisma.room.findMany({
           where: { fixtureId },
           include: { players: { include: { picks: true } } },

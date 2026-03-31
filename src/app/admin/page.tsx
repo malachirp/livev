@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
+const ADMIN_PASSWORD = 'admin';
+
 interface AdminRoom {
   id: string;
   code: string;
@@ -44,11 +46,34 @@ function formatDate(iso: string) {
 }
 
 export default function AdminPage() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'live' | 'finished'>('all');
+
+  // Check sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('livev_admin') === 'true') {
+      setAuthenticated(true);
+    }
+  }, []);
+
+  function handleLogin() {
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      setPasswordError(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('livev_admin', 'true');
+      }
+    } else {
+      setPasswordError(true);
+    }
+  }
 
   async function fetchRooms() {
     try {
@@ -63,7 +88,9 @@ export default function AdminPage() {
     }
   }
 
-  useEffect(() => { fetchRooms(); }, []);
+  useEffect(() => {
+    if (authenticated) fetchRooms();
+  }, [authenticated]);
 
   async function handleDelete(roomId: string, roomCode: string) {
     if (!confirm(`Delete game ${roomCode}? This cannot be undone.`)) return;
@@ -77,6 +104,52 @@ export default function AdminPage() {
     } finally {
       setDeleting(null);
     }
+  }
+
+  // Password gate
+  if (!authenticated) {
+    return (
+      <div className="flex flex-col flex-1 min-h-dvh items-center justify-center px-6">
+        <div className="w-full max-w-xs">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <a href="/" className="flex items-baseline">
+              <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+              <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
+            </a>
+            <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-1 rounded">ADMIN</span>
+          </div>
+
+          <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => { setPassword(e.target.value); setPasswordError(false); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
+            placeholder="Enter admin password"
+            autoFocus
+            className="w-full px-4 py-3.5 rounded-xl bg-charcoal text-white text-base font-medium placeholder-white/30 outline-none focus:ring-2 focus:ring-accent/30 mb-3"
+          />
+
+          {passwordError && (
+            <p className="text-live-red text-xs mb-3">Incorrect password</p>
+          )}
+
+          <button
+            onClick={handleLogin}
+            disabled={!password}
+            className={`w-full py-4 rounded-2xl font-black text-base transition-all ${
+              password
+                ? 'bg-accent text-navy active:scale-[0.98]'
+                : 'bg-charcoal text-white/30 cursor-not-allowed'
+            }`}
+          >
+            Log In
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const filteredRooms = rooms.filter(room => {
