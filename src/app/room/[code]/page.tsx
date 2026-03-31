@@ -182,9 +182,9 @@ export default function LiveRoomPage() {
       <header className="sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm">
           <div className="flex items-center gap-2">
-            <a href="/" className="flex items-baseline gap-0.5">
+            <a href="/" className="flex items-baseline">
               <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
-              <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+              <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
             </a>
             {live && (
               <span className="ml-2 flex items-center gap-1 bg-live-red/10 px-2 py-0.5 rounded-full">
@@ -199,7 +199,7 @@ export default function LiveRoomPage() {
         <div
           className="h-[2px]"
           style={{
-            background: `linear-gradient(90deg, ${getTeamColours(room.homeTeamId).primary} 0%, ${getTeamColours(room.homeTeamId).primary}40 40%, ${getTeamColours(room.awayTeamId).primary}40 60%, ${getTeamColours(room.awayTeamId).primary} 100%)`,
+            background: `linear-gradient(90deg, ${getTeamColours(room.homeTeamId, room.homeTeamName).primary} 0%, ${getTeamColours(room.homeTeamId, room.homeTeamName).primary}40 40%, ${getTeamColours(room.awayTeamId, room.awayTeamName).primary}40 60%, ${getTeamColours(room.awayTeamId, room.awayTeamName).primary} 100%)`,
           }}
         />
       </header>

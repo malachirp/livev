@@ -71,8 +71,8 @@ export const LEAGUES: League[] = [
   { id: 2, name: 'Champions League', season: 2025 },
   { id: 3, name: 'Europa League', season: 2025 },
   { id: 45, name: 'FA Cup', season: 2025 },
-  { id: 251, name: "Women's Champions League", season: 2025 },
   { id: 10, name: 'Friendlies', season: 2026 },
+  { id: 32, name: 'WC Qualifiers Europe', season: 2026 },
   { id: 1, name: 'World Cup', season: 2026 },
 ];
 
@@ -82,9 +82,52 @@ const FALLBACK_SEASONS: Record<number, number> = {
   2: 2024,
   3: 2024,
   45: 2024,
-  251: 2024,
   10: 2025,
+  32: 2024,
 };
+
+// Relevant nations for friendlies filtering:
+// Home nations + Republic of Ireland, plus all 2026 World Cup qualified/qualifying nations
+const RELEVANT_FRIENDLY_NATIONS = new Set([
+  // Home nations + Ireland
+  'england', 'scotland', 'wales', 'northern ireland', 'republic of ireland', 'ireland',
+  // Europe
+  'france', 'germany', 'spain', 'italy', 'portugal', 'netherlands', 'belgium',
+  'croatia', 'denmark', 'turkey', 'sweden', 'poland', 'austria', 'switzerland',
+  'serbia', 'ukraine', 'romania', 'greece', 'czech republic', 'czechia', 'hungary',
+  'norway', 'finland', 'iceland', 'slovenia', 'slovakia', 'albania', 'georgia',
+  'bosnia and herzegovina', 'montenegro', 'north macedonia', 'bulgaria',
+  // South America
+  'brazil', 'argentina', 'colombia', 'uruguay', 'chile', 'paraguay', 'peru', 'ecuador',
+  'venezuela', 'bolivia',
+  // Asia
+  'japan', 'south korea', 'korea republic', 'iran', 'saudi arabia', 'qatar',
+  'australia', 'uzbekistan', 'iraq', 'china',
+  // Africa
+  'morocco', 'cameroon', 'south africa', 'egypt', 'nigeria', 'senegal', 'ghana',
+  'tunisia', 'algeria', 'ivory coast', 'cote d\'ivoire', 'mali', 'dr congo',
+  // CONCACAF
+  'mexico', 'usa', 'united states', 'canada', 'costa rica', 'jamaica', 'panama', 'honduras',
+]);
+
+// Patterns that indicate age-group or non-senior friendlies
+const AGE_GROUP_PATTERN = /\bU\d{2}\b|Under[ -]?\d{2}|Olympic|Women|U-\d{2}/i;
+
+function isRelevantFriendly(fixture: ApiFixture): boolean {
+  const homeName = fixture.teams.home.name;
+  const awayName = fixture.teams.away.name;
+
+  // Exclude age-group teams
+  if (AGE_GROUP_PATTERN.test(homeName) || AGE_GROUP_PATTERN.test(awayName)) {
+    return false;
+  }
+
+  // At least one team must be a relevant nation
+  const homeRelevant = RELEVANT_FRIENDLY_NATIONS.has(homeName.toLowerCase());
+  const awayRelevant = RELEVANT_FRIENDLY_NATIONS.has(awayName.toLowerCase());
+
+  return homeRelevant || awayRelevant;
+}
 
 export async function getFixturesByLeague(
   leagueId: number,
@@ -118,6 +161,13 @@ export async function getFixturesByLeague(
       from,
       to,
     });
+  }
+
+  // Filter friendlies to only show relevant senior international matches
+  if (leagueId === 10) {
+    const before = fixtures.length;
+    fixtures = fixtures.filter(isRelevantFriendly);
+    console.log(`[API-Football] Filtered friendlies: ${before} -> ${fixtures.length} relevant matches`);
   }
 
   fixtureCache.set(cacheKey, { data: fixtures, expiresAt: Date.now() + FIXTURE_CACHE_TTL });

@@ -25,8 +25,8 @@ export default function MatchBanner({
   homeTeamLogo, awayTeamLogo, venue,
   homeScore, awayScore, status, minute, matchDate,
 }: Props) {
-  const homeColours = getTeamColours(homeTeamId);
-  const awayColours = getTeamColours(awayTeamId);
+  const homeColours = getTeamColours(homeTeamId, homeTeamName);
+  const awayColours = getTeamColours(awayTeamId, awayTeamName);
   const live = isMatchLive(status);
   const finished = isMatchFinished(status);
   const notStarted = isMatchNotStarted(status);

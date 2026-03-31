@@ -189,7 +189,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, existingP
               ) : (
                 <div className="space-y-1 mt-2">
                   {filteredPlayers.map(player => {
-                    const teamColours = getTeamColours(player.teamId);
+                    const teamColours = getTeamColours(player.teamId, player.teamName);
                     const isAlreadyPicked = picks.some(p => p?.footballPlayerId === player.id);
 
                     return (

@@ -13,8 +13,8 @@ interface Props {
 export default function FixtureCard({ fixture, onSelect }: Props) {
   const home = fixture.teams.home;
   const away = fixture.teams.away;
-  const homeColours = getTeamColours(home.id);
-  const awayColours = getTeamColours(away.id);
+  const homeColours = getTeamColours(home.id, home.name);
+  const awayColours = getTeamColours(away.id, away.name);
 
   return (
     <button

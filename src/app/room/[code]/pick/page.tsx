@@ -86,9 +86,9 @@ export default function PickTeamPage() {
     return (
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
-          <a href="/" className="flex items-baseline gap-0.5">
+          <a href="/" className="flex items-baseline">
             <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
-            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
           </a>
         </header>
         <div className="flex-1 flex items-center justify-center">
@@ -105,9 +105,9 @@ export default function PickTeamPage() {
     return (
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
-          <a href="/" className="flex items-baseline gap-0.5">
+          <a href="/" className="flex items-baseline">
             <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
-            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
           </a>
         </header>
         <div className="flex-1 flex items-center justify-center px-4">
@@ -135,9 +135,9 @@ export default function PickTeamPage() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </a>
-          <a href="/" className="flex items-baseline gap-0.5">
+          <a href="/" className="flex items-baseline">
             <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
-            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+            <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
           </a>
         </div>
         <ShareButton roomCode={code} />
