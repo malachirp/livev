@@ -16,7 +16,7 @@ export default function HelpButton() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[70] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[999] flex flex-col justify-end">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
             onClick={() => setOpen(false)}
@@ -38,7 +38,7 @@ export default function HelpButton() {
                   <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-2">The Game</h3>
                   <p className="text-xs text-white/60 leading-relaxed">
                     Pick a real match, build a 5-a-side dream team (1 GK, 1 DEF, 2 MID, 1 FWD),
-                    choose a captain for 1.5x points, then share the link and challenge your friends.
+                    choose a captain for 2x points, then share the link and challenge your friends.
                     Points update live as the match plays out. Max 3 players from one team.
                   </p>
                 </div>
@@ -81,7 +81,7 @@ export default function HelpButton() {
                   <ul className="text-xs text-white/40 space-y-1.5 list-disc list-inside">
                     <li>Clean sheets and win/loss bonuses are awarded at full time</li>
                     <li>Everything else updates live during the match</li>
-                    <li>Captain gets 1.5x total points (rounded)</li>
+                    <li>Captain gets 2x total points (rounded)</li>
                     <li>Teams lock at kick off — no changes once it starts</li>
                     <li>For smaller fixtures, some detailed stats (tackles, dribbles etc.) may not be available — the basics like goals and assists will always work</li>
                   </ul>

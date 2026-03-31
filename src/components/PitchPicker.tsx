@@ -124,7 +124,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
 
       {/* Captain hint */}
       <p className="text-[10px] text-white/30 text-center px-4 pb-2">
-        Tap a player to make them captain (C) for 1.5x points
+        Tap a player to make them captain (C) for 2x points
       </p>
 
       {/* Pitch - tighter aspect ratio to fit on screen */}

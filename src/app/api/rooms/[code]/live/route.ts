@@ -70,9 +70,9 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
                 room.awayTeamId
               );
 
-              // Captain gets 1.5x points
+              // Captain gets 2x points
               const isCaptain = pick.slotIndex === player.captainSlot;
-              const finalPoints = isCaptain ? Math.round(total * 1.5) : total;
+              const finalPoints = isCaptain ? total * 2 : total;
 
               await prisma.pick.update({
                 where: { id: pick.id },

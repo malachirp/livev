@@ -85,7 +85,7 @@ export default function TeamSheet({ picks, homeTeamId, awayTeamId, homeTeamName,
                 {pick.footballPlayerName}
                 {isCaptain && (
                   <span className="ml-1.5 text-[9px] font-black text-points-gold bg-points-gold/15 px-1.5 py-0.5 rounded">
-                    C ×1.5
+                    C ×2
                   </span>
                 )}
               </span>
