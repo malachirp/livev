@@ -19,12 +19,25 @@ export default function FixtureCard({ fixture, onSelect }: Props) {
   return (
     <button
       onClick={() => onSelect(fixture)}
-      className="w-full rounded-2xl overflow-hidden transition-all active:scale-[0.98] hover:ring-2 hover:ring-accent/30"
-      style={{
-        background: `linear-gradient(135deg, ${homeColours.primary}15 0%, #1e293b 40%, #1e293b 60%, ${awayColours.primary}15 100%)`,
-      }}
+      className="w-full rounded-2xl overflow-hidden transition-all active:scale-[0.98] hover:ring-2 hover:ring-accent/30 relative"
     >
-      <div className="px-4 py-4">
+      {/* Colour wash background */}
+      <div className="absolute inset-0 bg-charcoal" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(120deg, ${homeColours.primary}25 0%, transparent 35%, transparent 65%, ${awayColours.primary}25 100%)`,
+        }}
+      />
+      {/* Top colour bar */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[2px]"
+        style={{
+          background: `linear-gradient(90deg, ${homeColours.primary} 0%, ${homeColours.primary}40 40%, ${awayColours.primary}40 60%, ${awayColours.primary} 100%)`,
+        }}
+      />
+
+      <div className="relative px-4 py-4">
         {/* League + Time */}
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-medium text-white/40 uppercase tracking-wide">
@@ -56,8 +69,8 @@ export default function FixtureCard({ fixture, onSelect }: Props) {
             <span className="text-sm font-bold text-white truncate">{home.name}</span>
           </div>
 
-          {/* VS */}
-          <div className="px-3">
+          {/* VS divider */}
+          <div className="px-3 flex flex-col items-center">
             <span className="text-xs font-bold text-white/30">VS</span>
           </div>
 

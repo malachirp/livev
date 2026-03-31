@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import MatchBanner from '@/components/MatchBanner';
 import Leaderboard from '@/components/Leaderboard';
 import ShareButton from '@/components/ShareButton';
+import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
 import type { RoomData, PlayerData, ApiFixtureEvent } from '@/types';
 
@@ -178,20 +179,29 @@ export default function LiveRoomPage() {
   return (
     <div className="flex flex-col flex-1 pb-24">
       {/* Header with share */}
-      <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <a href="/" className="flex items-baseline gap-0.5">
-            <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
-            <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
-          </a>
-          {live && (
-            <span className="ml-2 flex items-center gap-1 bg-live-red/10 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-live-red live-dot" />
-              <span className="text-[10px] font-bold text-live-red uppercase">Live</span>
-            </span>
-          )}
+      <header className="sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <a href="/" className="flex items-baseline gap-0.5">
+              <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
+              <span className="text-2xl font-black tracking-tight text-accent italic ml-0.5">V</span>
+            </a>
+            {live && (
+              <span className="ml-2 flex items-center gap-1 bg-live-red/10 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-live-red live-dot" />
+                <span className="text-[10px] font-bold text-live-red uppercase">Live</span>
+              </span>
+            )}
+          </div>
+          <ShareButton roomCode={code} />
         </div>
-        <ShareButton roomCode={code} />
+        {/* Team colour gradient bar */}
+        <div
+          className="h-[2px]"
+          style={{
+            background: `linear-gradient(90deg, ${getTeamColours(room.homeTeamId).primary} 0%, ${getTeamColours(room.homeTeamId).primary}40 40%, ${getTeamColours(room.awayTeamId).primary}40 60%, ${getTeamColours(room.awayTeamId).primary} 100%)`,
+          }}
+        />
       </header>
 
       {/* Match Banner */}
