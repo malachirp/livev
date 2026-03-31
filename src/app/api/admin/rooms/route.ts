@@ -16,7 +16,7 @@ export async function GET() {
     });
 
     // Fetch match statuses for all fixtures
-    const fixtureIds = [...new Set(rooms.map(r => r.fixtureId))];
+    const fixtureIds = Array.from(new Set(rooms.map(r => r.fixtureId)));
     const matchCaches = await prisma.matchCache.findMany({
       where: { fixtureId: { in: fixtureIds } },
     });
