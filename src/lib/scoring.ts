@@ -130,8 +130,8 @@ export function calculatePlayerPoints(
   );
   breakdown.redCard = redCards.length * SCORING.RED_CARD;
 
-  // Stats-based scoring — all per occurrence
-  if (playerStats && playerStats.statistics[0]) {
+  // Stats-based scoring — only if player has appeared (played minutes)
+  if (playerStats && playerStats.statistics[0] && breakdown.appearance > 0) {
     const stats = playerStats.statistics[0];
 
     // Shots on target
