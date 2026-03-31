@@ -9,7 +9,10 @@ export async function GET() {
     const from = now.toISOString().split('T')[0];
     const to = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const fixtures = await getAllUpcomingFixtures(from, to);
+    const allFixtures = await getAllUpcomingFixtures(from, to);
+
+    // Only show fixtures that haven't started yet
+    const fixtures = allFixtures.filter(f => f.fixture.status.short === 'NS' || f.fixture.status.short === 'TBD');
 
     // Determine which leagues actually have fixtures
     const availableLeagueIds = Array.from(new Set(fixtures.map(f => f.league.id)));

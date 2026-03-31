@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
 
-    // Check if match has started
+    // Check if match has started (via cache status or matchDate)
     const matchCache = await prisma.matchCache.findUnique({
       where: { fixtureId: room.fixtureId },
     });
@@ -31,6 +31,14 @@ export async function POST(
     if (matchCache && !['NS'].includes(matchCache.status)) {
       return NextResponse.json(
         { error: 'Cannot pick team after match has started' },
+        { status: 400 }
+      );
+    }
+
+    // Fallback: if no cache exists, check if matchDate has passed
+    if (!matchCache && new Date(room.matchDate) <= new Date()) {
+      return NextResponse.json(
+        { error: 'Cannot pick team after kick off time' },
         { status: 400 }
       );
     }

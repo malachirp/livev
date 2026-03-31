@@ -56,7 +56,7 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
             let playerTotalPoints = 0;
 
             for (const pick of player.picks) {
-              const { total, breakdown } = calculatePlayerPoints(
+              const { total, breakdown, detailedStats } = calculatePlayerPoints(
                 pick.footballPlayerId,
                 pick.position,
                 pick.teamId,
@@ -75,7 +75,10 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
 
               await prisma.pick.update({
                 where: { id: pick.id },
-                data: { points: finalPoints, pointsBreakdown: breakdown as any },
+                data: {
+                  points: finalPoints,
+                  pointsBreakdown: { ...breakdown, detailedStats } as any,
+                },
               });
 
               playerTotalPoints += finalPoints;

@@ -106,8 +106,14 @@ export interface ApiPlayerStats {
       key: number | null;
       accuracy: string | null;
     };
+    shots: {
+      total: number | null;
+      on: number | null;
+    };
     tackles: {
       total: number | null;
+      blocks: number | null;
+      interceptions: number | null;
     };
     duels: {
       total: number | null;
