@@ -141,7 +141,7 @@ export async function GET(
 
     // Keep refreshing for live matches, pre-match, and recently finished (grace period for final stats)
     const isFinished = matchCache && ['FT', 'AET', 'PEN'].includes(matchCache.status);
-    const withinGracePeriod = isFinished && (now.getTime() - matchCache.updatedAt.getTime()) < FINISHED_GRACE_MS;
+    const withinGracePeriod = isFinished && matchCache && (now.getTime() - matchCache.updatedAt.getTime()) < FINISHED_GRACE_MS;
     const isLiveOrPending = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
     const shouldRefresh = isLiveOrPending || withinGracePeriod;
 
