@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function ShareButton({ roomCode }: { roomCode: string }) {
+export default function ShareButton({ roomCode, matchTitle }: { roomCode: string; matchTitle?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -11,8 +11,10 @@ export default function ShareButton({ roomCode }: { roomCode: string }) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'LIVE V — Join my game!',
-          text: 'Pick your 5-a-side team and compete!',
+          title: matchTitle ? `LIVE V — ${matchTitle}` : 'LIVE V — Join my game!',
+          text: matchTitle
+            ? `Join my game for ${matchTitle}! Pick your 5-a-side team and compete.`
+            : 'Pick your 5-a-side team and compete!',
           url,
         });
         return;

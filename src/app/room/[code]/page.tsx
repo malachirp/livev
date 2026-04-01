@@ -233,7 +233,7 @@ export default function LiveRoomPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <ShareButton roomCode={code} />
+            <ShareButton roomCode={code} matchTitle={`${room.homeTeamName} vs ${room.awayTeamName}`} />
             <HelpButton />
           </div>
         </div>
