@@ -30,9 +30,10 @@ interface Props {
   submitting: boolean;
   roomCode: string;
   existingCaptainSlot?: number;
+  hasLineups?: boolean;
 }
 
-export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamName, awayTeamName, existingPicks, onSubmit, submitting, roomCode, existingCaptainSlot }: Props) {
+export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamName, awayTeamName, existingPicks, onSubmit, submitting, roomCode, existingCaptainSlot, hasLineups }: Props) {
   const [picks, setPicks] = useState<(PickData | null)[]>([null, null, null, null, null]);
   const [captainSlot, setCaptainSlot] = useState<number>(0);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
@@ -133,10 +134,12 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
       <div className="text-[10px] text-white/30 text-center px-4 pb-2 leading-relaxed">
         <p>Tap a player to make them captain (C) for 2x points</p>
         <p>Double tap to change player</p>
-        {players.some(p => p.lineupStatus) && (
+        {hasLineups ? (
           <p className="mt-0.5">
             <span className="text-accent/50 font-bold">S</span> - starter, <span className="text-white/40 font-bold">B</span> - bench
           </p>
+        ) : (
+          <p className="mt-0.5">Lineups not yet released</p>
         )}
       </div>
 

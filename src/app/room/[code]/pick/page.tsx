@@ -210,6 +210,7 @@ export default function PickTeamPage() {
           submitting={submitting}
           roomCode={code}
           existingCaptainSlot={existingCaptainSlot}
+          hasLineups={hasLineups}
         />
       )}
     </div>
