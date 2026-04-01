@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { NormalizedPlayer, PickData } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
 import ShirtIcon from './ShirtIcon';
@@ -114,25 +114,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
     return p?.number ?? null;
   };
 
-  // Track visual viewport height for keyboard-aware bottom sheet
-  const [sheetMaxHeight, setSheetMaxHeight] = useState('65dvh');
-  const sheetRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (activeSlot === null) return;
-
-    function updateHeight() {
-      const vvh = window.visualViewport?.height ?? window.innerHeight;
-      setSheetMaxHeight(`${Math.round(vvh * 0.65)}px`);
-    }
-
-    updateHeight();
-    window.visualViewport?.addEventListener('resize', updateHeight);
-    return () => {
-      window.visualViewport?.removeEventListener('resize', updateHeight);
-    };
-  }, [activeSlot]);
-
   return (
     <div className="flex flex-col flex-1">
       {/* Team balance - centered */}
@@ -199,7 +180,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
             onClick={() => { setActiveSlot(null); setSearchQuery(''); }}
           />
 
-          <div ref={sheetRef} className="relative bg-navy border-t border-white/10 rounded-t-3xl flex flex-col animate-slide-up" style={{ maxHeight: sheetMaxHeight }}>
+          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl max-h-[65vh] flex flex-col animate-slide-up">
             <div className="flex justify-center py-3">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
@@ -217,7 +198,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
               />
             </div>
 
-            <div className="overflow-y-auto flex-1 min-h-0 px-4 pb-6">
+            <div className="overflow-y-auto flex-1 px-4 pb-6">
               {filteredPlayers.length === 0 ? (
                 <p className="text-white/30 text-sm text-center py-6">No players available</p>
               ) : (
