@@ -239,9 +239,6 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
                             {player.lineupStatus === 'starter' ? 'S' : 'B'}
                           </span>
                         )}
-                        {player.number && (
-                          <span className="text-xs font-bold text-white/20">#{player.number}</span>
-                        )}
                       </button>
                     );
                   })}
