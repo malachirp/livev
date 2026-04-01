@@ -32,22 +32,27 @@ export async function GET(
     ]);
 
     // Build a map of lineup players by team for merging
-    const lineupPlayerMap = new Map<string, { number: number; pos: string }>();
+    const lineupPlayerMap = new Map<string, { number: number; pos: string; status: 'starter' | 'bench' }>();
     const lineupPlayerIds = new Set<number>();
     let hasLineups = false;
 
     if (lineups && lineups.length > 0) {
       hasLineups = true;
       for (const teamLineup of lineups) {
-        const allLinePlayers = [
-          ...teamLineup.startXI.map(p => p.player),
-          ...teamLineup.substitutes.map(p => p.player),
-        ];
-        for (const p of allLinePlayers) {
+        for (const { player: p } of teamLineup.startXI) {
           lineupPlayerIds.add(p.id);
           lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
             number: p.number,
             pos: p.pos,
+            status: 'starter',
+          });
+        }
+        for (const { player: p } of teamLineup.substitutes) {
+          lineupPlayerIds.add(p.id);
+          lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+            number: p.number,
+            pos: p.pos,
+            status: 'bench',
           });
         }
       }
@@ -71,6 +76,7 @@ export async function GET(
           teamId: squad.team.id,
           teamName: squad.team.name,
           teamLogo: squad.team.logo,
+          lineupStatus: lineupInfo ? lineupInfo.status : (hasLineups ? null : null),
         };
       });
 
@@ -84,6 +90,7 @@ export async function GET(
     if (hasLineups && lineups) {
       const existingIds = new Set(players.map(p => p.id));
       for (const teamLineup of lineups) {
+        const starterIds = new Set(teamLineup.startXI.map(s => s.player.id));
         const allLinePlayers = [
           ...teamLineup.startXI.map(p => p.player),
           ...teamLineup.substitutes.map(p => p.player),
@@ -99,6 +106,7 @@ export async function GET(
               teamId: teamLineup.team.id,
               teamName: teamLineup.team.name,
               teamLogo: teamLineup.team.logo,
+              lineupStatus: starterIds.has(p.id) ? 'starter' : 'bench',
             });
             existingIds.add(p.id);
           }

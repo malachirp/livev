@@ -129,13 +129,16 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
         </div>
       </div>
 
-      {/* Captain hint */}
-      <p className="text-[10px] text-white/30 text-center px-4 pb-1">
-        Tap a player to make them captain (C) for 2x points
-      </p>
-      <p className="text-[10px] text-white/30 text-center px-4 pb-2">
-        Double tap to change player
-      </p>
+      {/* Hints */}
+      <div className="text-[10px] text-white/30 text-center px-4 pb-2 leading-relaxed">
+        <p>Tap a player to make them captain (C) for 2x points</p>
+        <p>Double tap to change player</p>
+        {players.some(p => p.lineupStatus) && (
+          <p className="mt-0.5">
+            <span className="text-accent/50 font-bold">S</span> - starter, <span className="text-white/40 font-bold">B</span> - bench
+          </p>
+        )}
+      </div>
 
       {/* Pitch - tighter aspect ratio to fit on screen */}
       <div className="pitch-bg rounded-2xl mx-3 relative" style={{ paddingBottom: '105%' }}>
@@ -182,7 +185,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
-            <div className="px-4 pb-2">
+            <div className="px-4 pb-2 flex-shrink-0">
               <h3 className="text-sm font-bold text-white/60 mb-2">
                 Select {SLOTS[activeSlot].label}
               </h3>
@@ -195,7 +198,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
               />
             </div>
 
-            <div className="overflow-y-auto flex-1 px-4 pb-6">
+            <div className="overflow-y-auto flex-1 min-h-0 px-4 pb-6">
               {filteredPlayers.length === 0 ? (
                 <p className="text-white/30 text-sm text-center py-6">No players available</p>
               ) : (
@@ -226,6 +229,13 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
                           </span>
                           <span className="text-[10px] text-white/40">{player.teamName}</span>
                         </div>
+                        {player.lineupStatus && (
+                          <span className={`text-[10px] font-black w-5 text-center ${
+                            player.lineupStatus === 'starter' ? 'text-accent/60' : 'text-white/30'
+                          }`}>
+                            {player.lineupStatus === 'starter' ? 'S' : 'B'}
+                          </span>
+                        )}
                         {player.number && (
                           <span className="text-xs font-bold text-white/20">#{player.number}</span>
                         )}

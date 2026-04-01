@@ -38,6 +38,7 @@ export default function LiveRoomPage() {
   const [currentPlayer, setCurrentPlayer] = useState<RoomResponse['currentPlayer']>(null);
   const [match, setMatch] = useState<RoomResponse['match']>({ status: 'NS', homeScore: null, awayScore: null, minute: null });
   const [leaderboard, setLeaderboard] = useState<PlayerData[]>([]);
+  const [events, setEvents] = useState<ApiFixtureEvent[]>([]);
   const [teamsLocked, setTeamsLocked] = useState(false);
   const [lockTime, setLockTime] = useState<string | null>(null);
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
@@ -85,6 +86,7 @@ export default function LiveRoomPage() {
       const data: LiveResponse = await res.json();
       setMatch(data.match);
       setLeaderboard(data.leaderboard);
+      if (data.match.events) setEvents(data.match.events);
       if (data.teamsLocked !== undefined) setTeamsLocked(data.teamsLocked);
     } catch {
       // Silently fail on poll errors
@@ -258,6 +260,7 @@ export default function LiveRoomPage() {
         status={match.status}
         minute={match.minute}
         matchDate={room.matchDate}
+        events={events}
       />
 
       {/* Player count + lock status */}

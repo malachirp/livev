@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished, isMatchNotStarted } from '@/types';
-import { timeUntilKickoff } from '@/lib/utils';
+import type { ApiFixtureEvent } from '@/types';
+import { formatKickoffTime, formatMatchDate } from '@/lib/utils';
 
 interface Props {
   homeTeamId: number;
@@ -18,15 +19,31 @@ interface Props {
   status: string;
   minute: number | null;
   matchDate: string;
+  events?: ApiFixtureEvent[];
 }
 
 export default function MatchBanner({
   homeTeamId, awayTeamId, homeTeamName, awayTeamName,
   homeTeamLogo, awayTeamLogo, venue,
-  homeScore, awayScore, status, minute, matchDate,
+  homeScore, awayScore, status, minute, matchDate, events = [],
 }: Props) {
   const homeColours = getTeamColours(homeTeamId, homeTeamName);
   const awayColours = getTeamColours(awayTeamId, awayTeamName);
+
+  // Extract goal scorers per team from events
+  const homeGoals = events.filter(
+    e => e.type === 'Goal' && e.team.id === homeTeamId && e.detail !== 'Missed Penalty'
+  );
+  const awayGoals = events.filter(
+    e => e.type === 'Goal' && e.team.id === awayTeamId && e.detail !== 'Missed Penalty'
+  );
+
+  // Format kickoff for pre-match display
+  const kickoffDate = new Date(matchDate);
+  const isToday = kickoffDate.toDateString() === new Date().toDateString();
+  const kickoffDisplay = isToday
+    ? formatKickoffTime(matchDate)
+    : `${formatMatchDate(matchDate)}, ${formatKickoffTime(matchDate)}`;
   const live = isMatchLive(status);
   const finished = isMatchFinished(status);
   const notStarted = isMatchNotStarted(status);
@@ -110,6 +127,15 @@ export default function MatchBanner({
           <span className="text-xs font-bold text-white/90 text-center leading-tight max-w-[80px]">
             {homeTeamName}
           </span>
+          {homeGoals.length > 0 && (
+            <div className="flex flex-col items-center gap-0.5 max-w-[90px]">
+              {homeGoals.map((g, i) => (
+                <span key={i} className="text-[9px] text-white/50 leading-tight text-center">
+                  {g.player.name.split(' ').pop()} {g.time.elapsed}&apos;{g.detail === 'Penalty' ? ' (P)' : g.detail === 'Own Goal' ? ' (OG)' : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Score */}
@@ -117,20 +143,20 @@ export default function MatchBanner({
           {notStarted ? (
             <div className="flex flex-col items-center">
               <span className="text-2xl font-black text-white/30">VS</span>
-              <span className="text-xs text-white/40 mt-1">{timeUntilKickoff(matchDate)}</span>
+              <span className="text-xs text-white/40 mt-1">{kickoffDisplay}</span>
             </div>
           ) : (
             <>
               <span
-                className={`text-4xl font-black ${live ? 'animate-score-pop' : ''}`}
-                style={{ color: homeColours.primary, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+                className={`text-4xl font-black text-white ${live ? 'animate-score-pop' : ''}`}
+                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
               >
                 {homeScore ?? 0}
               </span>
               <span className="text-lg font-bold text-white/20">-</span>
               <span
-                className={`text-4xl font-black ${live ? 'animate-score-pop' : ''}`}
-                style={{ color: awayColours.primary, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+                className={`text-4xl font-black text-white ${live ? 'animate-score-pop' : ''}`}
+                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
               >
                 {awayScore ?? 0}
               </span>
@@ -148,6 +174,15 @@ export default function MatchBanner({
           <span className="text-xs font-bold text-white/90 text-center leading-tight max-w-[80px]">
             {awayTeamName}
           </span>
+          {awayGoals.length > 0 && (
+            <div className="flex flex-col items-center gap-0.5 max-w-[90px]">
+              {awayGoals.map((g, i) => (
+                <span key={i} className="text-[9px] text-white/50 leading-tight text-center">
+                  {g.player.name.split(' ').pop()} {g.time.elapsed}&apos;{g.detail === 'Penalty' ? ' (P)' : g.detail === 'Own Goal' ? ' (OG)' : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

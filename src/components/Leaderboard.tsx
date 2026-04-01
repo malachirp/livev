@@ -91,9 +91,6 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
                 {!hasPicks && (
                   <span className="text-[10px] text-white/30">Picking team...</span>
                 )}
-                {hasPicks && !picksVisible && (
-                  <span className="text-[10px] text-white/30">Team locked in</span>
-                )}
               </div>
 
               {/* Points */}
