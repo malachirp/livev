@@ -102,9 +102,9 @@ export default function LiveRoomPage() {
     if (isMatchLive(status)) {
       interval = 60_000; // 1 min during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
-      // Final poll then stop
+      // Keep polling for 5 minutes after FT to pick up final events/stats
       pollLive();
-      return;
+      interval = 60_000;
     } else {
       // Smart pre-match polling: faster as kickoff approaches
       const kickoff = new Date(room.matchDate).getTime();

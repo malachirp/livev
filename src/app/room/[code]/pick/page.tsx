@@ -60,6 +60,12 @@ export default function PickTeamPage() {
         setRoom(roomData.room);
         fixtureIdRef.current = roomData.room.fixtureId;
 
+        // Redirect back if teams are already locked (5 min before kickoff)
+        if (roomData.room.teamsLocked) {
+          router.replace(`/room/${code}`);
+          return;
+        }
+
         if (roomData.currentPlayer?.hasPicks) {
           const playerData = roomData.room.players.find(
             (p: any) => p.id === roomData.currentPlayer.id

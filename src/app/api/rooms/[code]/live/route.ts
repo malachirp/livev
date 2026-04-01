@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 
 const CACHE_TTL_MS = 55_000; // 55 seconds — aligned with 1-min client polling
 
+// Grace period after FT to keep refreshing for final events/stats
+const FINISHED_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+
 // Simple in-memory lock to prevent thundering herd on the same fixture
 const refreshLocks = new Map<number, Promise<void>>();
 
@@ -18,87 +21,101 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
     return;
   }
 
-  const refreshPromise = (async () => {
-    try {
-      const fixture = await getFixtureDetails(fixtureId);
-      const status = fixture.fixture.status.short;
-      const homeScore = fixture.goals.home;
-      const awayScore = fixture.goals.away;
-      const minute = fixture.fixture.status.elapsed;
+  // Set lock BEFORE creating the async work to close the race window
+  let resolve!: () => void;
+  const lockPromise = new Promise<void>(r => { resolve = r; });
+  refreshLocks.set(fixtureId, lockPromise);
 
-      let events: any[] = [];
-      let playerStats: any[] = [];
+  try {
+    const fixture = await getFixtureDetails(fixtureId);
+    const status = fixture.fixture.status.short;
+    const homeScore = fixture.goals.home;
+    const awayScore = fixture.goals.away;
+    const minute = fixture.fixture.status.elapsed;
 
-      const matchStarted = !['NS', 'TBD', 'PST', 'CANC', 'ABD'].includes(status);
-      if (matchStarted) {
-        [events, playerStats] = await Promise.all([
-          getFixtureEvents(fixtureId).catch(() => []),
-          getFixturePlayerStats(fixtureId).catch(() => []),
-        ]);
-      }
+    let events: any[] | null = null;
+    let playerStats: any[] | null = null;
 
-      // Upsert match cache
-      await prisma.matchCache.upsert({
+    const matchStarted = !['NS', 'TBD', 'PST', 'CANC', 'ABD'].includes(status);
+    if (matchStarted) {
+      [events, playerStats] = await Promise.all([
+        getFixtureEvents(fixtureId).catch(() => null),
+        getFixturePlayerStats(fixtureId).catch(() => null),
+      ]);
+    }
+
+    // Only update cache if we got valid data (don't overwrite good data with failed fetches)
+    const hasEvents = events !== null;
+    const hasStats = playerStats !== null;
+
+    const updateData: any = { status, homeScore, awayScore, minute };
+    if (hasEvents) updateData.events = events;
+    if (hasStats) updateData.playerStats = playerStats;
+
+    await prisma.matchCache.upsert({
+      where: { fixtureId },
+      update: updateData,
+      create: {
+        fixtureId, status, homeScore, awayScore, minute,
+        events: events ?? [],
+        playerStats: playerStats ?? [],
+      },
+    });
+
+    // Recalculate points for ALL rooms using this fixture
+    const safeEvents = hasEvents ? events! : ((await prisma.matchCache.findUnique({ where: { fixtureId } }))?.events as any[] ?? []);
+    const safeStats = hasStats ? playerStats! : ((await prisma.matchCache.findUnique({ where: { fixtureId } }))?.playerStats as any[] ?? []);
+
+    if (matchStarted && (safeEvents.length > 0 || safeStats.length > 0)) {
+      const rooms = await prisma.room.findMany({
         where: { fixtureId },
-        update: { status, homeScore, awayScore, minute, events, playerStats },
-        create: { fixtureId, status, homeScore, awayScore, minute, events, playerStats },
+        include: { players: { include: { picks: true } } },
       });
 
-      // Recalculate points for ALL rooms using this fixture
-      // Trigger on events OR playerStats — stats contain appearance/minutes data
-      if (matchStarted && (events.length > 0 || playerStats.length > 0)) {
-        const rooms = await prisma.room.findMany({
-          where: { fixtureId },
-          include: { players: { include: { picks: true } } },
-        });
+      for (const room of rooms) {
+        for (const player of room.players) {
+          let playerTotalPoints = 0;
 
-        for (const room of rooms) {
-          for (const player of room.players) {
-            let playerTotalPoints = 0;
+          for (const pick of player.picks) {
+            const { total, breakdown } = calculatePlayerPoints(
+              pick.footballPlayerId,
+              pick.position,
+              pick.teamId,
+              safeEvents,
+              safeStats,
+              status,
+              homeScore,
+              awayScore,
+              room.homeTeamId,
+              room.awayTeamId
+            );
 
-            for (const pick of player.picks) {
-              const { total, breakdown } = calculatePlayerPoints(
-                pick.footballPlayerId,
-                pick.position,
-                pick.teamId,
-                events,
-                playerStats,
-                status,
-                homeScore,
-                awayScore,
-                room.homeTeamId,
-                room.awayTeamId
-              );
+            // Captain gets 2x points
+            const isCaptain = pick.slotIndex === player.captainSlot;
+            const finalPoints = isCaptain ? total * 2 : total;
 
-              // Captain gets 2x points
-              const isCaptain = pick.slotIndex === player.captainSlot;
-              const finalPoints = isCaptain ? total * 2 : total;
-
-              await prisma.pick.update({
-                where: { id: pick.id },
-                data: {
-                  points: finalPoints,
-                  pointsBreakdown: breakdown as any,
-                },
-              });
-
-              playerTotalPoints += finalPoints;
-            }
-
-            await prisma.player.update({
-              where: { id: player.id },
-              data: { totalPoints: playerTotalPoints },
+            await prisma.pick.update({
+              where: { id: pick.id },
+              data: {
+                points: finalPoints,
+                pointsBreakdown: breakdown as any,
+              },
             });
+
+            playerTotalPoints += finalPoints;
           }
+
+          await prisma.player.update({
+            where: { id: player.id },
+            data: { totalPoints: playerTotalPoints },
+          });
         }
       }
-    } finally {
-      refreshLocks.delete(fixtureId);
     }
-  })();
-
-  refreshLocks.set(fixtureId, refreshPromise);
-  await refreshPromise;
+  } finally {
+    refreshLocks.delete(fixtureId);
+    resolve();
+  }
 }
 
 export async function GET(
@@ -121,9 +138,14 @@ export async function GET(
 
     const now = new Date();
     const isStale = !matchCache || (now.getTime() - matchCache.updatedAt.getTime()) > CACHE_TTL_MS;
-    const isLiveOrRecent = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
 
-    if (isStale && isLiveOrRecent) {
+    // Keep refreshing for live matches, pre-match, and recently finished (grace period for final stats)
+    const isFinished = matchCache && ['FT', 'AET', 'PEN'].includes(matchCache.status);
+    const withinGracePeriod = isFinished && (now.getTime() - matchCache.updatedAt.getTime()) < FINISHED_GRACE_MS;
+    const isLiveOrPending = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
+    const shouldRefresh = isLiveOrPending || withinGracePeriod;
+
+    if (isStale && shouldRefresh) {
       try {
         await refreshMatchData(room.fixtureId, room.homeTeamId, room.awayTeamId);
         // Re-read cache after refresh
