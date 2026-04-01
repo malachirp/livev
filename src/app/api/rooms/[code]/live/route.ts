@@ -5,7 +5,7 @@ import { calculatePlayerPoints } from '@/lib/scoring';
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_TTL_MS = 25_000; // 25 seconds
+const CACHE_TTL_MS = 55_000; // 55 seconds — aligned with 1-min client polling
 
 // Simple in-memory lock to prevent thundering herd on the same fixture
 const refreshLocks = new Map<number, Promise<void>>();

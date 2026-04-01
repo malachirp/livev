@@ -100,7 +100,7 @@ export default function LiveRoomPage() {
     let interval: number;
 
     if (isMatchLive(status)) {
-      interval = 30_000; // 30s during live match (includes HT, ET, penalties, etc.)
+      interval = 60_000; // 1 min during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
       // Final poll then stop
       pollLive();
@@ -111,7 +111,7 @@ export default function LiveRoomPage() {
       const msUntilKickoff = kickoff - Date.now();
 
       if (msUntilKickoff <= 0) {
-        interval = 30_000; // Should be live soon, poll frequently
+        interval = 60_000; // Should be live soon, poll every minute
       } else if (msUntilKickoff <= 30 * 60 * 1000) {
         interval = 60_000; // Within 30min: every minute
       } else {

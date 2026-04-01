@@ -52,10 +52,16 @@ interface CacheEntry<T> {
 const fixtureCache = new Map<string, CacheEntry<ApiFixture[]>>();
 const squadCache = new Map<number, CacheEntry<ApiSquadResponse>>();
 const lineupCache = new Map<number, CacheEntry<ApiLineupResponse[] | null>>();
+const fixtureDetailsCache = new Map<number, CacheEntry<ApiFixture>>();
+const fixtureEventsCache = new Map<number, CacheEntry<ApiFixtureEvent[]>>();
+const fixturePlayerStatsCache = new Map<number, CacheEntry<ApiFixturePlayersResponse[]>>();
 
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const LINEUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (short so we pick up lineups when released)
+const FIXTURE_DETAILS_CACHE_TTL = 55 * 1000; // 55 seconds — aligned with 1-min client polling
+const FIXTURE_EVENTS_CACHE_TTL = 55 * 1000; // 55 seconds
+const FIXTURE_PLAYER_STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — player stats don't change frequently
 
 function getCached<T>(cache: Map<string | number, CacheEntry<T>>, key: string | number): T | null {
   const entry = cache.get(key);
@@ -85,21 +91,6 @@ export const LEAGUES: League[] = [
   { id: 10, name: 'Friendlies', season: 2026 },
 ];
 
-// Fallback seasons to try if primary returns no results
-const FALLBACK_SEASONS: Record<number, number> = {
-  2: 2024,
-  39: 2024,
-  40: 2024,
-  41: 2024,
-  45: 2024,
-  140: 2024,
-  78: 2024,
-  94: 2024,
-  3: 2024,
-  525: 2024,
-  32: 2024,
-  10: 2025,
-};
 
 // Relevant nations for friendlies filtering:
 // Home nations + Republic of Ireland, plus all 2026 World Cup qualified/qualifying nations
@@ -159,24 +150,12 @@ export async function getFixturesByLeague(
     return cached;
   }
 
-  // Try primary season
-  let fixtures = await apiFetch<ApiFixture>('/fixtures', {
+  const fixtures = await apiFetch<ApiFixture>('/fixtures', {
     league: leagueId,
     season: league.season,
     from,
     to,
   });
-
-  // If no results and there's a fallback season, try that
-  if (fixtures.length === 0 && FALLBACK_SEASONS[leagueId]) {
-    console.log(`[API-Football] No fixtures for league ${leagueId} season ${league.season}, trying fallback season ${FALLBACK_SEASONS[leagueId]}`);
-    fixtures = await apiFetch<ApiFixture>('/fixtures', {
-      league: leagueId,
-      season: FALLBACK_SEASONS[leagueId],
-      from,
-      to,
-    });
-  }
 
   // Filter friendlies to only show relevant senior international matches
   if (leagueId === 10) {
@@ -223,17 +202,41 @@ export async function getSquad(teamId: number): Promise<ApiSquadResponse> {
 }
 
 export async function getFixtureDetails(fixtureId: number): Promise<ApiFixture> {
+  const cached = getCached(fixtureDetailsCache, fixtureId);
+  if (cached) {
+    console.log(`[API-Football] Cache hit for fixture details: fixture=${fixtureId}`);
+    return cached;
+  }
+
   const results = await apiFetch<ApiFixture>('/fixtures', { id: fixtureId });
   if (!results.length) throw new Error(`Fixture ${fixtureId} not found`);
+
+  fixtureDetailsCache.set(fixtureId, { data: results[0], expiresAt: Date.now() + FIXTURE_DETAILS_CACHE_TTL });
   return results[0];
 }
 
 export async function getFixtureEvents(fixtureId: number): Promise<ApiFixtureEvent[]> {
-  return apiFetch<ApiFixtureEvent>('/fixtures/events', { fixture: fixtureId });
+  const cached = getCached(fixtureEventsCache, fixtureId);
+  if (cached) {
+    console.log(`[API-Football] Cache hit for fixture events: fixture=${fixtureId}`);
+    return cached;
+  }
+
+  const results = await apiFetch<ApiFixtureEvent>('/fixtures/events', { fixture: fixtureId });
+  fixtureEventsCache.set(fixtureId, { data: results, expiresAt: Date.now() + FIXTURE_EVENTS_CACHE_TTL });
+  return results;
 }
 
 export async function getFixturePlayerStats(fixtureId: number): Promise<ApiFixturePlayersResponse[]> {
-  return apiFetch<ApiFixturePlayersResponse>('/fixtures/players', { fixture: fixtureId });
+  const cached = getCached(fixturePlayerStatsCache, fixtureId);
+  if (cached) {
+    console.log(`[API-Football] Cache hit for player stats: fixture=${fixtureId}`);
+    return cached;
+  }
+
+  const results = await apiFetch<ApiFixturePlayersResponse>('/fixtures/players', { fixture: fixtureId });
+  fixturePlayerStatsCache.set(fixtureId, { data: results, expiresAt: Date.now() + FIXTURE_PLAYER_STATS_CACHE_TTL });
+  return results;
 }
 
 export async function getFixtureLineups(fixtureId: number): Promise<ApiLineupResponse[] | null> {
