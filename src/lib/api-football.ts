@@ -150,7 +150,7 @@ export async function getFixturesByLeague(
     return cached;
   }
 
-  const fixtures = await apiFetch<ApiFixture>('/fixtures', {
+  let fixtures = await apiFetch<ApiFixture>('/fixtures', {
     league: leagueId,
     season: league.season,
     from,
