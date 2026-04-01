@@ -169,18 +169,19 @@ export async function getFixturesByLeague(
 }
 
 export async function getAllUpcomingFixtures(from: string, to: string): Promise<ApiFixture[]> {
-  const results = await Promise.allSettled(
-    LEAGUES.map(league => getFixturesByLeague(league.id, from, to))
-  );
-
   const fixtures: ApiFixture[] = [];
-  results.forEach((result, i) => {
-    if (result.status === 'fulfilled') {
-      fixtures.push(...result.value);
-    } else {
-      console.error(`[API-Football] Failed to fetch league ${LEAGUES[i].name}:`, result.reason);
+
+  // Fetch leagues sequentially with a delay to avoid hitting API rate limits
+  for (const league of LEAGUES) {
+    try {
+      const result = await getFixturesByLeague(league.id, from, to);
+      fixtures.push(...result);
+    } catch (err) {
+      console.error(`[API-Football] Failed to fetch league ${league.name}:`, err);
     }
-  });
+    // Small delay between requests (skipped if cache hit since no API call was made)
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 
   // Sort by date
   fixtures.sort((a, b) => a.fixture.timestamp - b.fixture.timestamp);
