@@ -80,6 +80,7 @@ export const LEAGUES: League[] = [
   { id: 78, name: 'Bundesliga', season: 2025 },
   { id: 94, name: 'Primeira Liga', season: 2025 },
   { id: 3, name: 'Europa League', season: 2025 },
+  { id: 761, name: "Women's Champions League", season: 2025 },
   { id: 32, name: 'WC Qualifiers', season: 2026 },
   { id: 10, name: 'Friendlies', season: 2026 },
 ];
@@ -95,6 +96,7 @@ const FALLBACK_SEASONS: Record<number, number> = {
   78: 2024,
   94: 2024,
   3: 2024,
+  761: 2024,
   32: 2024,
   10: 2025,
 };
