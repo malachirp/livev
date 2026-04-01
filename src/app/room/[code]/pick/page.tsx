@@ -171,7 +171,7 @@ export default function PickTeamPage() {
           <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
         </a>
         <div className="flex items-center gap-2">
-          <ShareButton roomCode={code} />
+          <ShareButton roomCode={code} matchTitle={room ? `${room.homeTeamName} vs ${room.awayTeamName}` : undefined} />
           <HelpButton />
         </div>
       </header>
