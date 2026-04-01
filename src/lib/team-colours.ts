@@ -416,6 +416,8 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'vfl wolfsburg w': { primary: '#65B32E', secondary: '#FFFFFF' },
   'chelsea w': { primary: '#034694', secondary: '#FFFFFF' },
   'arsenal w': { primary: '#EF0107', secondary: '#FFFFFF' },
+  'bayern munich w': { primary: '#DC052D', secondary: '#FFFFFF' },
+  'manchester united w': { primary: '#DA291C', secondary: '#FBE122' },
 };
 
 const DEFAULT_COLOURS: Colours = { primary: '#334155', secondary: '#94a3b8' };
