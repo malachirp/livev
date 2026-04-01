@@ -408,6 +408,14 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'panama': { primary: '#CC0000', secondary: '#003DA5' },
   'honduras': { primary: '#003DA5', secondary: '#FFFFFF' },
   'new zealand': { primary: '#FFFFFF', secondary: '#000000' },
+
+  // Women's Champions League
+  'barcelona w': { primary: '#A50044', secondary: '#004D98' },
+  'real madrid w': { primary: '#FFFFFF', secondary: '#FEBE10' },
+  'lyon w': { primary: '#FFFFFF', secondary: '#D2122E' },
+  'vfl wolfsburg w': { primary: '#65B32E', secondary: '#FFFFFF' },
+  'chelsea w': { primary: '#034694', secondary: '#FFFFFF' },
+  'arsenal w': { primary: '#EF0107', secondary: '#FFFFFF' },
 };
 
 const DEFAULT_COLOURS: Colours = { primary: '#334155', secondary: '#94a3b8' };
