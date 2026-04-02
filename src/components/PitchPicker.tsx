@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { NormalizedPlayer, PickData } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
 import ShirtIcon from './ShirtIcon';
@@ -38,6 +38,39 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
   const [captainSlot, setCaptainSlot] = useState<number>(0);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Drag-to-dismiss for player selector sheet
+  const selectorSheetRef = useRef<HTMLDivElement>(null);
+  const selectorDragStartY = useRef<number | null>(null);
+  const selectorTranslateY = useRef(0);
+
+  const handleSelectorTouchStart = (e: React.TouchEvent) => {
+    selectorDragStartY.current = e.touches[0].clientY;
+  };
+
+  const handleSelectorTouchMove = (e: React.TouchEvent) => {
+    if (selectorDragStartY.current === null || !selectorSheetRef.current) return;
+    const dy = e.touches[0].clientY - selectorDragStartY.current;
+    if (dy > 0) {
+      selectorTranslateY.current = dy;
+      selectorSheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+
+  const handleSelectorTouchEnd = () => {
+    if (selectorTranslateY.current > 100) {
+      setActiveSlot(null);
+      setSearchQuery('');
+    } else if (selectorSheetRef.current) {
+      selectorSheetRef.current.style.transform = 'translateY(0)';
+      selectorSheetRef.current.style.transition = 'transform 0.2s ease-out';
+      setTimeout(() => {
+        if (selectorSheetRef.current) selectorSheetRef.current.style.transition = '';
+      }, 200);
+    }
+    selectorDragStartY.current = null;
+    selectorTranslateY.current = 0;
+  };
 
   useEffect(() => {
     if (existingPicks && existingPicks.length > 0) {
@@ -183,8 +216,16 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
             onClick={() => { setActiveSlot(null); setSearchQuery(''); }}
           />
 
-          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl max-h-[65vh] flex flex-col animate-slide-up">
-            <div className="flex justify-center py-3">
+          <div
+            ref={selectorSheetRef}
+            className="relative bg-navy border-t border-white/10 rounded-t-3xl max-h-[65vh] flex flex-col animate-slide-up"
+          >
+            <div
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none"
+              onTouchStart={handleSelectorTouchStart}
+              onTouchMove={handleSelectorTouchMove}
+              onTouchEnd={handleSelectorTouchEnd}
+            >
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
