@@ -4,14 +4,53 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 function HelpModal({ onClose }: { onClose: () => void }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
+  const currentTranslateY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null || !sheetRef.current) return;
+    const dy = e.touches[0].clientY - dragStartY.current;
+    if (dy > 0) {
+      currentTranslateY.current = dy;
+      sheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (currentTranslateY.current > 100) {
+      onClose();
+    } else if (sheetRef.current) {
+      sheetRef.current.style.transform = 'translateY(0)';
+      sheetRef.current.style.transition = 'transform 0.2s ease-out';
+      setTimeout(() => {
+        if (sheetRef.current) sheetRef.current.style.transition = '';
+      }, 200);
+    }
+    dragStartY.current = null;
+    currentTranslateY.current = 0;
+  };
+
   return (
     <div className="fixed inset-0 z-[999] flex flex-col justify-end">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
         onClick={onClose}
       />
-      <div className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up max-h-[85vh] overflow-y-auto">
-        <div className="flex justify-center py-3">
+      <div
+        ref={sheetRef}
+        className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up max-h-[85vh] overflow-y-auto"
+      >
+        <div
+          className="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 

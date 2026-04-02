@@ -6,7 +6,7 @@ export default function ShareButton({ roomCode, matchTitle }: { roomCode: string
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/room/${roomCode}`;
+    const url = roomCode ? `${window.location.origin}/room/${roomCode}` : window.location.origin;
 
     if (navigator.share) {
       try {

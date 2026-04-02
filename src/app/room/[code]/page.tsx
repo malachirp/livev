@@ -137,6 +137,8 @@ export default function LiveRoomPage() {
       if (diff <= 0) {
         setLockCountdown(null);
         setTeamsLocked(true);
+        // Immediately fetch revealed picks
+        pollLive();
         return;
       }
       const h = Math.floor(diff / (1000 * 60 * 60));
@@ -150,7 +152,7 @@ export default function LiveRoomPage() {
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, [lockTime, teamsLocked]);
+  }, [lockTime, teamsLocked, pollLive]);
 
   const handleJoin = async () => {
     if (!joinName.trim()) return;

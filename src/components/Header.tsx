@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import HelpButton from './HelpButton';
+import ShareButton from './ShareButton';
 
 export default function Header({ showBack, backHref }: { showBack?: boolean; backHref?: string }) {
   return (
@@ -22,7 +23,10 @@ export default function Header({ showBack, backHref }: { showBack?: boolean; bac
           <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
         </Link>
       </div>
-      <HelpButton />
+      <div className="flex items-center gap-2">
+        <ShareButton roomCode="" />
+        <HelpButton />
+      </div>
     </header>
   );
 }
