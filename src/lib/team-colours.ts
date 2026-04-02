@@ -326,7 +326,6 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'gil vicente': { primary: '#000000', secondary: '#CC0000' },
   'tondela': { primary: '#003DA5', secondary: '#FFCD00' },
   'sc tondela': { primary: '#003DA5', secondary: '#FFCD00' },
-  'estrela': { primary: '#CC0000', secondary: '#000000' },
   'cf estrela': { primary: '#CC0000', secondary: '#000000' },
   'cf os belenenses': { primary: '#003DA5', secondary: '#FFFFFF' },
   'belenenses': { primary: '#003DA5', secondary: '#FFFFFF' },
