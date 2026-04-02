@@ -142,6 +142,7 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'accrington': { primary: '#CC0000', secondary: '#FFFFFF' },
   'afc wimbledon': { primary: '#003DA5', secondary: '#FFCD00' },
   'wimbledon': { primary: '#003DA5', secondary: '#FFCD00' },
+  'a.f.c. wimbledon': { primary: '#003DA5', secondary: '#FFCD00' },
   'barrow': { primary: '#003DA5', secondary: '#FFFFFF' },
   'carlisle united': { primary: '#003DA5', secondary: '#CC0000' },
   'carlisle': { primary: '#003DA5', secondary: '#CC0000' },
@@ -239,6 +240,8 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'ud las palmas': { primary: '#FFDD00', secondary: '#003DA5' },
   'leganes': { primary: '#003DA5', secondary: '#FFFFFF' },
   'cd leganes': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'real oviedo': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'oviedo': { primary: '#003DA5', secondary: '#FFFFFF' },
 
   // ============================================================
   // BUNDESLIGA 2025-26
@@ -282,6 +285,13 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'hertha': { primary: '#005DAC', secondary: '#FFFFFF' },
   'sv darmstadt 98': { primary: '#004E9E', secondary: '#FFFFFF' },
   'darmstadt': { primary: '#004E9E', secondary: '#FFFFFF' },
+  'hamburger sv': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'hsv': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'hamburg': { primary: '#003DA5', secondary: '#FFFFFF' },
+  '1. fsv mainz 05': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'mainz 05': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'mainz': { primary: '#CC0000', secondary: '#FFFFFF' },
+  'fsv mainz': { primary: '#CC0000', secondary: '#FFFFFF' },
 
   // ============================================================
   // PRIMEIRA LIGA 2025-26
@@ -310,8 +320,16 @@ const TEAM_COLOURS: Record<string, Colours> = {
   'cd santa clara': { primary: '#CC0000', secondary: '#FFFFFF' },
   'nacional': { primary: '#000000', secondary: '#FFFFFF' },
   'cd nacional': { primary: '#000000', secondary: '#FFFFFF' },
+  'club nacional': { primary: '#000000', secondary: '#FFFFFF' },
   'estrela amadora': { primary: '#CC0000', secondary: '#000000' },
+  'estrela': { primary: '#CC0000', secondary: '#000000' },
   'gil vicente': { primary: '#000000', secondary: '#CC0000' },
+  'tondela': { primary: '#003DA5', secondary: '#FFCD00' },
+  'sc tondela': { primary: '#003DA5', secondary: '#FFCD00' },
+  'estrela': { primary: '#CC0000', secondary: '#000000' },
+  'cf estrela': { primary: '#CC0000', secondary: '#000000' },
+  'cf os belenenses': { primary: '#003DA5', secondary: '#FFFFFF' },
+  'belenenses': { primary: '#003DA5', secondary: '#FFFFFF' },
 
   // ============================================================
   // CHAMPIONS LEAGUE — additional clubs not above
