@@ -11,7 +11,7 @@ export default function ShareButton({ roomCode, matchTitle }: { roomCode: string
     if (navigator.share) {
       try {
         await navigator.share({
-          title: matchTitle ? `LIVE V — ${matchTitle}` : 'LIVE V — Join my game!',
+          title: matchTitle ? `LIVE V — ${matchTitle}` : roomCode ? 'LIVE V — Join my game!' : 'LIVE V — Play mini fantasy football!',
           text: matchTitle
             ? `Pick your 5-a-side fantasy team for ${matchTitle}!`
             : 'Pick your 5-a-side fantasy team!',
