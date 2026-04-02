@@ -180,7 +180,7 @@ export async function getAllUpcomingFixtures(from: string, to: string): Promise<
       console.error(`[API-Football] Failed to fetch league ${league.name}:`, err);
     }
     // Small delay between requests (skipped if cache hit since no API call was made)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 250));
   }
 
   // Sort by date
