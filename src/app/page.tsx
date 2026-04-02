@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import LeagueFilter from '@/components/LeagueFilter';
 import FixtureCard from '@/components/FixtureCard';
@@ -23,6 +23,37 @@ export default function CreateGamePage() {
   const [selectedFixture, setSelectedFixture] = useState<ApiFixture | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Drag-to-dismiss for fixture bottom sheet
+  const fixtureSheetRef = useRef<HTMLDivElement>(null);
+  const fixtureDragStartY = useRef<number | null>(null);
+  const fixtureTranslateY = useRef(0);
+
+  const handleFixtureTouchStart = (e: React.TouchEvent) => {
+    fixtureDragStartY.current = e.touches[0].clientY;
+  };
+  const handleFixtureTouchMove = (e: React.TouchEvent) => {
+    if (fixtureDragStartY.current === null || !fixtureSheetRef.current) return;
+    const dy = e.touches[0].clientY - fixtureDragStartY.current;
+    if (dy > 0) {
+      fixtureTranslateY.current = dy;
+      fixtureSheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+  const handleFixtureTouchEnd = () => {
+    if (fixtureTranslateY.current > 100) {
+      setSelectedFixture(null);
+      setError(null);
+    } else if (fixtureSheetRef.current) {
+      fixtureSheetRef.current.style.transform = 'translateY(0)';
+      fixtureSheetRef.current.style.transition = 'transform 0.2s ease-out';
+      setTimeout(() => {
+        if (fixtureSheetRef.current) fixtureSheetRef.current.style.transition = '';
+      }, 200);
+    }
+    fixtureDragStartY.current = null;
+    fixtureTranslateY.current = 0;
+  };
 
   useEffect(() => {
     fetch('/api/fixtures')
@@ -173,8 +204,13 @@ export default function CreateGamePage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
             onClick={() => { setSelectedFixture(null); setError(null); }}
           />
-          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up">
-            <div className="flex justify-center py-3">
+          <div ref={fixtureSheetRef} className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up">
+            <div
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none"
+              onTouchStart={handleFixtureTouchStart}
+              onTouchMove={handleFixtureTouchMove}
+              onTouchEnd={handleFixtureTouchEnd}
+            >
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 

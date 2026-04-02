@@ -51,6 +51,37 @@ export default function LiveRoomPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
+  // Drag-to-dismiss for join bottom sheet
+  const joinSheetRef = useRef<HTMLDivElement>(null);
+  const joinDragStartY = useRef<number | null>(null);
+  const joinTranslateY = useRef(0);
+
+  const handleJoinTouchStart = (e: React.TouchEvent) => {
+    joinDragStartY.current = e.touches[0].clientY;
+  };
+  const handleJoinTouchMove = (e: React.TouchEvent) => {
+    if (joinDragStartY.current === null || !joinSheetRef.current) return;
+    const dy = e.touches[0].clientY - joinDragStartY.current;
+    if (dy > 0) {
+      joinTranslateY.current = dy;
+      joinSheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+  const handleJoinTouchEnd = () => {
+    if (joinTranslateY.current > 100) {
+      setShowJoin(false);
+      setJoinError(null);
+    } else if (joinSheetRef.current) {
+      joinSheetRef.current.style.transform = 'translateY(0)';
+      joinSheetRef.current.style.transition = 'transform 0.2s ease-out';
+      setTimeout(() => {
+        if (joinSheetRef.current) joinSheetRef.current.style.transition = '';
+      }, 200);
+    }
+    joinDragStartY.current = null;
+    joinTranslateY.current = 0;
+  };
+
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initial load
@@ -342,8 +373,13 @@ export default function LiveRoomPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
             onClick={() => { setShowJoin(false); setJoinError(null); }}
           />
-          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up">
-            <div className="flex justify-center py-3">
+          <div ref={joinSheetRef} className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up">
+            <div
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none"
+              onTouchStart={handleJoinTouchStart}
+              onTouchMove={handleJoinTouchMove}
+              onTouchEnd={handleJoinTouchEnd}
+            >
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
