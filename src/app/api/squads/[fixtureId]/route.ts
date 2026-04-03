@@ -45,41 +45,44 @@ export async function GET(
       shouldCheckLineups ? getFixtureLineups(fixtureId) : Promise.resolve(null),
     ]);
 
-    // Build a map of lineup players by team for merging
-    const lineupPlayerMap = new Map<string, { number: number; pos: string; status: 'starter' | 'bench' }>();
+    // Build a map of lineup players keyed by player ID (globally unique in API-Football)
+    // Previously keyed by "${teamId}-${playerId}" which broke when team IDs differed between endpoints
+    const lineupPlayerMap = new Map<number, { number: number; pos: string; status: 'starter' | 'bench'; teamId: number }>();
     const lineupPlayerIds = new Set<number>();
-    let hasLineups = false;
 
     if (lineups && lineups.length > 0) {
-      hasLineups = true;
       for (const teamLineup of lineups) {
         if (teamLineup.startXI) {
           for (const { player: p } of teamLineup.startXI) {
             lineupPlayerIds.add(p.id);
-            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+            lineupPlayerMap.set(p.id, {
               number: p.number,
               pos: p.pos,
               status: 'starter',
+              teamId: teamLineup.team.id,
             });
           }
         }
         if (teamLineup.substitutes) {
           for (const { player: p } of teamLineup.substitutes) {
             lineupPlayerIds.add(p.id);
-            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+            lineupPlayerMap.set(p.id, {
               number: p.number,
               pos: p.pos,
               status: 'bench',
+              teamId: teamLineup.team.id,
             });
           }
         }
       }
     }
 
+    // Only report lineups available if we actually found players
+    const hasLineups = lineupPlayerMap.size > 0;
+
     const normalize = (squad: typeof homeSquad): NormalizedPlayer[] =>
       squad.players.map(p => {
-        // If lineups are available, check if this player has updated info
-        const lineupInfo = lineupPlayerMap.get(`${squad.team.id}-${p.id}`);
+        const lineupInfo = lineupPlayerMap.get(p.id);
         const position = lineupInfo
           ? normalizeLineupPosition(lineupInfo.pos)
           : normalizePosition(p.position);
@@ -94,7 +97,7 @@ export async function GET(
           teamId: squad.team.id,
           teamName: squad.team.name,
           teamLogo: squad.team.logo,
-          lineupStatus: lineupInfo ? lineupInfo.status : (hasLineups ? null : null),
+          lineupStatus: lineupInfo ? lineupInfo.status : null,
         };
       });
 
