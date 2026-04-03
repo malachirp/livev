@@ -46,34 +46,46 @@ export async function GET(
     ]);
 
     // Build a map of lineup players by team for merging
+    // Wrapped in try/catch so malformed lineup data never prevents squads from loading
     const lineupPlayerMap = new Map<string, { number: number; pos: string; status: 'starter' | 'bench' }>();
     const lineupPlayerIds = new Set<number>();
     let hasLineups = false;
 
-    if (lineups && lineups.length > 0) {
-      hasLineups = true;
-      for (const teamLineup of lineups) {
-        if (teamLineup.startXI) {
-          for (const { player: p } of teamLineup.startXI) {
-            lineupPlayerIds.add(p.id);
-            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
-              number: p.number,
-              pos: p.pos,
-              status: 'starter',
-            });
+    try {
+      if (lineups && lineups.length > 0) {
+        for (const teamLineup of lineups) {
+          if (teamLineup.startXI) {
+            for (const { player: p } of teamLineup.startXI) {
+              lineupPlayerIds.add(p.id);
+              lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+                number: p.number,
+                pos: p.pos,
+                status: 'starter',
+              });
+            }
+          }
+          if (teamLineup.substitutes) {
+            for (const { player: p } of teamLineup.substitutes) {
+              lineupPlayerIds.add(p.id);
+              lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+                number: p.number,
+                pos: p.pos,
+                status: 'bench',
+              });
+            }
           }
         }
-        if (teamLineup.substitutes) {
-          for (const { player: p } of teamLineup.substitutes) {
-            lineupPlayerIds.add(p.id);
-            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
-              number: p.number,
-              pos: p.pos,
-              status: 'bench',
-            });
-          }
+        // Only mark lineups as available if we actually processed some players
+        if (lineupPlayerIds.size > 0) {
+          hasLineups = true;
         }
       }
+    } catch (lineupError) {
+      console.error('Failed to process lineup data, falling back to squads only:', lineupError);
+      // Reset — show squads without lineup data
+      lineupPlayerMap.clear();
+      lineupPlayerIds.clear();
+      hasLineups = false;
     }
 
     const normalize = (squad: typeof homeSquad): NormalizedPlayer[] =>
@@ -106,39 +118,44 @@ export async function GET(
 
     // Add any lineup players not in the squad (late call-ups, etc.)
     if (hasLineups && lineups) {
-      const existingIds = new Set(players.map(p => p.id));
-      for (const teamLineup of lineups) {
-        const starters = teamLineup.startXI || [];
-        const subs = teamLineup.substitutes || [];
-        const starterIds = new Set(starters.map(s => s.player.id));
-        const allLinePlayers = [
-          ...starters.map(p => p.player),
-          ...subs.map(p => p.player),
-        ];
-        for (const p of allLinePlayers) {
-          if (!existingIds.has(p.id)) {
-            players.push({
-              id: p.id,
-              name: sanitizePlayerName(p.name),
-              position: normalizeLineupPosition(p.pos),
-              number: p.number,
-              photo: '', // lineup endpoint doesn't include photos
-              teamId: teamLineup.team.id,
-              teamName: teamLineup.team.name,
-              teamLogo: teamLineup.team.logo,
-              lineupStatus: starterIds.has(p.id) ? 'starter' : 'bench',
-            });
-            existingIds.add(p.id);
+      try {
+        const existingIds = new Set(players.map(p => p.id));
+        for (const teamLineup of lineups) {
+          const starters = teamLineup.startXI || [];
+          const subs = teamLineup.substitutes || [];
+          const starterIds = new Set(starters.map(s => s.player.id));
+          const allLinePlayers = [
+            ...starters.map(p => p.player),
+            ...subs.map(p => p.player),
+          ];
+          for (const p of allLinePlayers) {
+            if (!existingIds.has(p.id)) {
+              players.push({
+                id: p.id,
+                name: sanitizePlayerName(p.name),
+                position: normalizeLineupPosition(p.pos),
+                number: p.number,
+                photo: '', // lineup endpoint doesn't include photos
+                teamId: teamLineup.team.id,
+                teamName: teamLineup.team.name,
+                teamLogo: teamLineup.team.logo,
+                lineupStatus: starterIds.has(p.id) ? 'starter' : 'bench',
+              });
+              existingIds.add(p.id);
+            }
           }
         }
-      }
 
-      // Sort: lineup players first (they're actually in the match-day squad), then the rest
-      players.sort((a, b) => {
-        const aInLineup = lineupPlayerIds.has(a.id) ? 0 : 1;
-        const bInLineup = lineupPlayerIds.has(b.id) ? 0 : 1;
-        return aInLineup - bInLineup;
-      });
+        // Sort: lineup players first (they're actually in the match-day squad), then the rest
+        players.sort((a, b) => {
+          const aInLineup = lineupPlayerIds.has(a.id) ? 0 : 1;
+          const bInLineup = lineupPlayerIds.has(b.id) ? 0 : 1;
+          return aInLineup - bInLineup;
+        });
+      } catch (mergeError) {
+        console.error('Failed to merge lineup players into squads:', mergeError);
+        // players array still has the full squads — just without lineup extras
+      }
     }
 
     return NextResponse.json({
