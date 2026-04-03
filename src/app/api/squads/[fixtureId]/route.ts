@@ -15,13 +15,27 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid fixture ID' }, { status: 400 });
     }
 
-    // Get fixture to find team IDs and kickoff time
-    const fixture = await getFixtureDetails(fixtureId);
-    const homeTeamId = fixture.teams.home.id;
-    const awayTeamId = fixture.teams.away.id;
+    const url = new URL(_request.url);
+    const homeTeamIdParam = url.searchParams.get('homeTeamId');
+    const awayTeamIdParam = url.searchParams.get('awayTeamId');
+    const matchDateParam = url.searchParams.get('matchDate');
 
-    // Fetch squads in parallel, and try lineups if within ~90 min of kickoff
-    const kickoff = new Date(fixture.fixture.date).getTime();
+    let homeTeamId: number;
+    let awayTeamId: number;
+    let kickoff: number;
+
+    // Use query params if provided (avoids an API call to getFixtureDetails)
+    if (homeTeamIdParam && awayTeamIdParam && matchDateParam) {
+      homeTeamId = parseInt(homeTeamIdParam, 10);
+      awayTeamId = parseInt(awayTeamIdParam, 10);
+      kickoff = new Date(matchDateParam).getTime();
+    } else {
+      // Fallback: fetch fixture details from API
+      const fixture = await getFixtureDetails(fixtureId);
+      homeTeamId = fixture.teams.home.id;
+      awayTeamId = fixture.teams.away.id;
+      kickoff = new Date(fixture.fixture.date).getTime();
+    }
     const msUntilKickoff = kickoff - Date.now();
     const shouldCheckLineups = msUntilKickoff <= 90 * 60 * 1000; // 90 minutes
 

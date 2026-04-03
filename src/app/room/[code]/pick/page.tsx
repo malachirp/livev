@@ -23,11 +23,14 @@ export default function PickTeamPage() {
   const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
   const fixtureIdRef = useRef<number | null>(null);
 
+  const squadsUrlRef = useRef<string | null>(null);
+
   // Poll for lineup updates when close to kickoff
   const refreshSquads = useCallback(async () => {
-    if (!fixtureIdRef.current) return;
+    if (!squadsUrlRef.current) return;
     try {
-      const squadsRes = await fetch(`/api/squads/${fixtureIdRef.current}`);
+      const squadsRes = await fetch(squadsUrlRef.current);
+      if (!squadsRes.ok) return;
       const squadsData = await squadsRes.json();
       if (squadsData.players) {
         setPlayers(squadsData.players);
@@ -78,15 +81,29 @@ export default function PickTeamPage() {
           }
         }
 
-        const squadsRes = await fetch(`/api/squads/${roomData.room.fixtureId}`);
-        const squadsData = await squadsRes.json();
-        setPlayers(squadsData.players || []);
-        setHasLineups(squadsData.hasLineups || false);
+        // Build squad URL with room data to avoid an extra API call on the server
+        const squadsUrl = `/api/squads/${roomData.room.fixtureId}?homeTeamId=${roomData.room.homeTeamId}&awayTeamId=${roomData.room.awayTeamId}&matchDate=${encodeURIComponent(roomData.room.matchDate)}`;
+        squadsUrlRef.current = squadsUrl;
+
+        const squadsRes = await fetch(squadsUrl);
+        if (!squadsRes.ok) {
+          // Retry once after a short delay
+          await new Promise(r => setTimeout(r, 2000));
+          const retryRes = await fetch(squadsUrl);
+          if (!retryRes.ok) throw new Error('Failed to load squads');
+          const retryData = await retryRes.json();
+          setPlayers(retryData.players || []);
+          setHasLineups(retryData.hasLineups || false);
+        } else {
+          const squadsData = await squadsRes.json();
+          setPlayers(squadsData.players || []);
+          setHasLineups(squadsData.hasLineups || false);
+        }
 
         // Start polling for lineups if within 90 min of kickoff and lineups not yet available
         const kickoff = new Date(roomData.room.matchDate).getTime();
         const msUntilKickoff = kickoff - Date.now();
-        if (msUntilKickoff <= 90 * 60 * 1000 && msUntilKickoff > 0 && !squadsData.hasLineups) {
+        if (msUntilKickoff <= 90 * 60 * 1000 && msUntilKickoff > 0 && !hasLineups) {
           // Poll every 2 minutes for lineup release
           lineupPollRef.current = setInterval(refreshSquads, 2 * 60 * 1000);
         }

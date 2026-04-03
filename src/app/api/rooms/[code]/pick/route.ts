@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
+import { getSessionToken } from '@/lib/utils';
 import type { PickData } from '@/types';
 
 export async function POST(
@@ -9,7 +10,7 @@ export async function POST(
 ) {
   try {
     const cookieStore = cookies();
-    const sessionToken = cookieStore.get('livev_session')?.value;
+    const sessionToken = getSessionToken(cookieStore.get('livev_session')?.value, params.code);
 
     if (!sessionToken) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

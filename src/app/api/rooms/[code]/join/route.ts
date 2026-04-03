@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { generateSessionToken } from '@/lib/utils';
+import { generateSessionToken, getSessionToken, getSessionMap } from '@/lib/utils';
 import { cookies } from 'next/headers';
 
 export async function POST(
@@ -29,7 +29,8 @@ export async function POST(
 
     // Check if user already exists with this session
     const cookieStore = cookies();
-    const existingToken = cookieStore.get('livev_session')?.value;
+    const cookieValue = cookieStore.get('livev_session')?.value;
+    const existingToken = getSessionToken(cookieValue, params.code);
 
     if (existingToken) {
       const existingPlayer = await prisma.player.findFirst({
@@ -73,7 +74,11 @@ export async function POST(
       alreadyJoined: false,
     });
 
-    response.cookies.set('livev_session', sessionToken, {
+    // Add to session map (preserves tokens for other rooms)
+    const sessions = getSessionMap(cookieValue);
+    sessions[params.code] = sessionToken;
+
+    response.cookies.set('livev_session', JSON.stringify(sessions), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

@@ -79,6 +79,31 @@ export function formatKickoffTime(dateStr: string): string {
   });
 }
 
+// Session helpers — store a JSON map of roomCode → sessionToken in a single cookie
+// so players can be in multiple rooms without losing their identity.
+export function getSessionMap(cookieValue: string | undefined): Record<string, string> {
+  if (!cookieValue) return {};
+  try {
+    const parsed = JSON.parse(cookieValue);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Not JSON — treat as a legacy single token (migration)
+  }
+  return {};
+}
+
+export function getSessionToken(cookieValue: string | undefined, roomCode: string): string | null {
+  if (!cookieValue) return null;
+  // Try new format first (JSON map)
+  const map = getSessionMap(cookieValue);
+  if (map[roomCode]) return map[roomCode];
+  // Fallback: old single-token format — check if it's a plain token string
+  if (cookieValue && !cookieValue.startsWith('{')) return cookieValue;
+  return null;
+}
+
 export function timeUntilKickoff(matchDate: string): string {
   const now = new Date();
   const kick = new Date(matchDate);

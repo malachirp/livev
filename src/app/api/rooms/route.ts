@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { generateRoomCode, generateSessionToken } from '@/lib/utils';
+import { generateRoomCode, generateSessionToken, getSessionMap } from '@/lib/utils';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
@@ -57,8 +58,12 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ code: room!.code, sessionToken });
 
-    // Set session cookie
-    response.cookies.set('livev_session', sessionToken, {
+    // Add to session map (preserves tokens for other rooms)
+    const cookieStore = cookies();
+    const sessions = getSessionMap(cookieStore.get('livev_session')?.value);
+    sessions[room!.code] = sessionToken;
+
+    response.cookies.set('livev_session', JSON.stringify(sessions), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

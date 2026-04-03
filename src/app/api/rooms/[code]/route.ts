@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
+import { getSessionToken } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const cookieStore = cookies();
-    const sessionToken = cookieStore.get('livev_session')?.value;
+    const sessionToken = getSessionToken(cookieStore.get('livev_session')?.value, params.code);
 
     // Find if current user is in the room
     const currentPlayer = sessionToken
