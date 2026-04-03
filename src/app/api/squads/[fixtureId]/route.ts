@@ -53,21 +53,25 @@ export async function GET(
     if (lineups && lineups.length > 0) {
       hasLineups = true;
       for (const teamLineup of lineups) {
-        for (const { player: p } of teamLineup.startXI) {
-          lineupPlayerIds.add(p.id);
-          lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
-            number: p.number,
-            pos: p.pos,
-            status: 'starter',
-          });
+        if (teamLineup.startXI) {
+          for (const { player: p } of teamLineup.startXI) {
+            lineupPlayerIds.add(p.id);
+            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+              number: p.number,
+              pos: p.pos,
+              status: 'starter',
+            });
+          }
         }
-        for (const { player: p } of teamLineup.substitutes) {
-          lineupPlayerIds.add(p.id);
-          lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
-            number: p.number,
-            pos: p.pos,
-            status: 'bench',
-          });
+        if (teamLineup.substitutes) {
+          for (const { player: p } of teamLineup.substitutes) {
+            lineupPlayerIds.add(p.id);
+            lineupPlayerMap.set(`${teamLineup.team.id}-${p.id}`, {
+              number: p.number,
+              pos: p.pos,
+              status: 'bench',
+            });
+          }
         }
       }
     }
@@ -104,10 +108,12 @@ export async function GET(
     if (hasLineups && lineups) {
       const existingIds = new Set(players.map(p => p.id));
       for (const teamLineup of lineups) {
-        const starterIds = new Set(teamLineup.startXI.map(s => s.player.id));
+        const starters = teamLineup.startXI || [];
+        const subs = teamLineup.substitutes || [];
+        const starterIds = new Set(starters.map(s => s.player.id));
         const allLinePlayers = [
-          ...teamLineup.startXI.map(p => p.player),
-          ...teamLineup.substitutes.map(p => p.player),
+          ...starters.map(p => p.player),
+          ...subs.map(p => p.player),
         ];
         for (const p of allLinePlayers) {
           if (!existingIds.has(p.id)) {
