@@ -87,8 +87,7 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
               homeScore,
               awayScore,
               room.homeTeamId,
-              room.awayTeamId,
-              minute
+              room.awayTeamId
             );
 
             // Captain gets 2x points
