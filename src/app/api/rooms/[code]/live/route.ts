@@ -72,6 +72,10 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
         include: { players: { include: { picks: true } } },
       });
 
+      // Batch all DB writes into a single transaction to avoid
+      // 60+ sequential round-trips that block the DB connection pool
+      const dbOps: any[] = [];
+
       for (const room of rooms) {
         for (const player of room.players) {
           let playerTotalPoints = 0;
@@ -90,26 +94,29 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
               room.awayTeamId
             );
 
-            // Captain gets 2x points
             const isCaptain = pick.slotIndex === player.captainSlot;
             const finalPoints = isCaptain ? total * 2 : total;
 
-            await prisma.pick.update({
+            dbOps.push(prisma.pick.update({
               where: { id: pick.id },
               data: {
                 points: finalPoints,
                 pointsBreakdown: breakdown as any,
               },
-            });
+            }));
 
             playerTotalPoints += finalPoints;
           }
 
-          await prisma.player.update({
+          dbOps.push(prisma.player.update({
             where: { id: player.id },
             data: { totalPoints: playerTotalPoints },
-          });
+          }));
         }
+      }
+
+      if (dbOps.length > 0) {
+        await prisma.$transaction(dbOps);
       }
     }
   } finally {

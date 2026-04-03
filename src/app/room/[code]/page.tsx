@@ -127,14 +127,15 @@ export default function LiveRoomPage() {
   useEffect(() => {
     if (!room) return;
 
+    // Poll immediately — don't wait for the first interval tick
+    pollLive();
+
     const status = match.status;
     let interval: number;
 
     if (isMatchLive(status)) {
       interval = 60_000; // 1 min during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
-      // Keep polling for 5 minutes after FT to pick up final events/stats
-      pollLive();
       interval = 60_000;
     } else {
       // Smart pre-match polling: faster as kickoff approaches
@@ -155,6 +156,17 @@ export default function LiveRoomPage() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [room, match.status, pollLive]);
+
+  // When tab becomes visible again, poll immediately instead of waiting for next interval
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && room) {
+        pollLive();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [room, pollLive]);
 
   // Countdown timer to lock time
   useEffect(() => {

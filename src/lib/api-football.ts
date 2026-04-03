@@ -21,25 +21,37 @@ async function apiFetch<T>(endpoint: string, params: Record<string, string | num
 
   console.log(`[API-Football] Fetching: ${endpoint}`, params);
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      'x-apisports-key': getApiKey(),
-    },
-    next: { revalidate: 0 },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000); // 10 second timeout
 
-  if (!res.ok) {
-    throw new Error(`API-Football error: ${res.status} ${res.statusText}`);
+  try {
+    const res = await fetch(url.toString(), {
+      headers: {
+        'x-apisports-key': getApiKey(),
+      },
+      signal: controller.signal,
+      next: { revalidate: 0 },
+    });
+
+    if (!res.ok) {
+      throw new Error(`API-Football error: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      console.error(`[API-Football] API errors for ${endpoint}:`, data.errors);
+      // If we got errors and no results, throw so callers know the data is bad
+      if (!data.response || data.response.length === 0) {
+        throw new Error(`API-Football returned errors for ${endpoint}: ${JSON.stringify(data.errors)}`);
+      }
+    }
+
+    console.log(`[API-Football] ${endpoint} returned ${data.results ?? 0} results`);
+    return data.response as T[];
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await res.json();
-
-  if (data.errors && Object.keys(data.errors).length > 0) {
-    console.error(`[API-Football] API errors for ${endpoint}:`, data.errors);
-  }
-
-  console.log(`[API-Football] ${endpoint} returned ${data.results ?? 0} results`);
-  return data.response as T[];
 }
 
 // --- In-memory caches ---
