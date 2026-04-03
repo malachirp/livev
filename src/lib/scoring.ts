@@ -54,7 +54,8 @@ export function calculatePlayerPoints(
   homeScore: number | null,
   awayScore: number | null,
   homeTeamId: number,
-  awayTeamId: number
+  awayTeamId: number,
+  matchMinute: number | null
 ): { total: number; breakdown: PointsBreakdown } {
   const breakdown: PointsBreakdown = {
     appearance: 0,
@@ -91,7 +92,10 @@ export function calculatePlayerPoints(
   // Appearance: played any minutes
   if (playerStats && playerStats.statistics[0]?.games.minutes) {
     breakdown.appearance = SCORING.APPEARANCE;
-    breakdown.minutesPlayed = playerStats.statistics[0].games.minutes;
+    // Use match elapsed minute (from fixture status, refreshed every ~55s) instead of
+    // games.minutes (player's individual playing time from stats snapshots, which can
+    // be stale/misleading — e.g. showing 45' for a sub who came on at 55')
+    breakdown.minutesPlayed = matchMinute;
     breakdown.rating = playerStats.statistics[0].games.rating;
   }
 
