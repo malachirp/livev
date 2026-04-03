@@ -61,7 +61,7 @@ const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const LINEUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (short so we pick up lineups when released)
 const FIXTURE_DETAILS_CACHE_TTL = 55 * 1000; // 55 seconds — aligned with 1-min client polling
 const FIXTURE_EVENTS_CACHE_TTL = 55 * 1000; // 55 seconds
-const FIXTURE_PLAYER_STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — player stats don't change frequently
+const FIXTURE_PLAYER_STATS_CACHE_TTL = 55 * 1000; // 55 seconds — aligned with other live data caches to prevent stale minutes display
 
 function getCached<T>(cache: Map<string | number, CacheEntry<T>>, key: string | number): T | null {
   const entry = cache.get(key);
