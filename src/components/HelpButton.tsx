@@ -95,6 +95,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               <h3 className="text-xs font-bold text-live-red uppercase tracking-wider mb-2">Deductions</h3>
               <div className="space-y-0.5">
                 <ScoreRow label="Foul Committed" value="-1" negative />
+                <ScoreRow label="Goals Conceded 3+ (GK)" value="-2" negative />
                 <ScoreRow label="Yellow Card" value="-2" negative />
                 <ScoreRow label="Red Card" value="-4" negative />
                 <ScoreRow label="Own Goal" value="-4" negative />
@@ -107,7 +108,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
             <div>
               <h3 className="text-xs font-bold text-white/30 uppercase tracking-wider mb-2">Good to know</h3>
               <ul className="text-xs text-white/40 space-y-1.5 list-disc list-inside">
-                <li>Clean sheets and win/loss bonuses are awarded at full time</li>
+                <li>Clean sheets, goals conceded, and win/loss bonuses are awarded at full time</li>
                 <li>Everything else updates live during the match</li>
                 <li>Captain gets 2x total points</li>
                 <li>Teams lock 5 minutes before kick off — no edits after that</li>
