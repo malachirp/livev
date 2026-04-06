@@ -13,6 +13,9 @@ const FINISHED_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 // Simple in-memory lock to prevent thundering herd on the same fixture
 const refreshLocks = new Map<number, Promise<void>>();
 
+// Track when each fixture was first detected as finished, so the grace period actually expires
+const finishedAt = new Map<number, number>();
+
 async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamId: number) {
   // If already refreshing this fixture, wait for it
   const existing = refreshLocks.get(fixtureId);
@@ -45,6 +48,9 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
     if (isNowFinished && wasNotFinished) {
       console.log(`[Live] Match ${fixtureId} just finished (${status}), clearing caches for final stats`);
       clearFixtureCaches(fixtureId);
+      if (!finishedAt.has(fixtureId)) {
+        finishedAt.set(fixtureId, Date.now());
+      }
     }
 
     let events: any[] | null = null;
@@ -162,7 +168,12 @@ export async function GET(
 
     // Keep refreshing for live matches, pre-match, and recently finished (grace period for final stats)
     const isFinished = matchCache && ['FT', 'AET', 'PEN'].includes(matchCache.status);
-    const withinGracePeriod = isFinished && matchCache && (now.getTime() - matchCache.updatedAt.getTime()) < FINISHED_GRACE_MS;
+    // Seed finishedAt from DB if server restarted after match ended
+    if (isFinished && !finishedAt.has(room.fixtureId) && matchCache) {
+      finishedAt.set(room.fixtureId, matchCache.updatedAt.getTime());
+    }
+    const finishTime = finishedAt.get(room.fixtureId);
+    const withinGracePeriod = isFinished && finishTime != null && (now.getTime() - finishTime) < FINISHED_GRACE_MS;
     const isLiveOrPending = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
     const shouldRefresh = isLiveOrPending || withinGracePeriod;
 

@@ -83,6 +83,7 @@ export default function LiveRoomPage() {
   };
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const finishedSinceRef = useRef<number | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -136,6 +137,12 @@ export default function LiveRoomPage() {
     if (isMatchLive(status)) {
       interval = 60_000; // 1 min during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
+      // Track when we first saw FT; stop polling after 5 min grace period
+      if (!finishedSinceRef.current) finishedSinceRef.current = Date.now();
+      const msSinceFinished = Date.now() - finishedSinceRef.current;
+      if (msSinceFinished > 5 * 60 * 1000) {
+        return; // Grace period over — no more polling (visibility handler still works)
+      }
       interval = 60_000;
     } else {
       // Smart pre-match polling: faster as kickoff approaches
