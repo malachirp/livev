@@ -16,6 +16,7 @@ export interface ApiFixture {
       long: string;
       short: string; // NS, 1H, HT, 2H, ET, FT, etc.
       elapsed: number | null;
+      extra: number | null;
     };
   };
   league: {

@@ -34,6 +34,7 @@ const BREAKDOWN_ITEMS: { key: string; label: string }[] = [
   { key: 'cleanSheet', label: 'Clean Sheet' },
   { key: 'saves', label: 'Saves Bonus' },
   { key: 'penaltySave', label: 'Penalty Save' },
+  { key: 'goalsConceded', label: 'Goals Conceded (3+)' },
   { key: 'yellowCard', label: 'Yellow Card' },
   { key: 'redCard', label: 'Red Card' },
   { key: 'ownGoal', label: 'Own Goal' },

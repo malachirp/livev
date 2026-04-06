@@ -13,6 +13,7 @@ export interface PointsBreakdown {
   cleanSheet: number;
   saves: number;
   penaltySave: number;
+  goalsConceded: number;
   yellowCard: number;
   redCard: number;
   ownGoal: number;
@@ -36,6 +37,7 @@ export const SCORING = {
   CLEAN_SHEET_GK: 6,
   CLEAN_SHEET_DEF: 4,
   PENALTY_SAVE: 6,
+  GOALS_CONCEDED_3_PLUS: -2, // GK penalty when team concedes 3+ goals
   YELLOW_CARD: -2,
   RED_CARD: -4,
   OWN_GOAL: -4,
@@ -69,6 +71,7 @@ export function calculatePlayerPoints(
     cleanSheet: 0,
     saves: 0,
     penaltySave: 0,
+    goalsConceded: 0,
     yellowCard: 0,
     redCard: 0,
     ownGoal: 0,
@@ -204,6 +207,11 @@ export function calculatePlayerPoints(
       } else if (pickPosition === 'DEF') {
         breakdown.cleanSheet = SCORING.CLEAN_SHEET_DEF;
       }
+    }
+
+    // GK penalty for conceding 3+ goals
+    if (pickPosition === 'GK' && goalsAgainst !== null && goalsAgainst >= 3) {
+      breakdown.goalsConceded = SCORING.GOALS_CONCEDED_3_PLUS;
     }
   }
 

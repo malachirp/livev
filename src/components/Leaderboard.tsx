@@ -28,6 +28,20 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
 
+  // Standard competition ranking: tied players share the same rank
+  const ranks: number[] = [];
+  sorted.forEach((player, index) => {
+    if (index === 0) {
+      ranks.push(1);
+    } else {
+      ranks.push(
+        player.totalPoints === sorted[index - 1].totalPoints
+          ? ranks[index - 1]
+          : index + 1
+      );
+    }
+  });
+
   if (sorted.length === 0) {
     return (
       <div className="px-4 py-8 text-center">
@@ -44,7 +58,7 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
         // hasPicks from API tells us if they've picked (even when picks are hidden)
         const hasPicks = player.hasPicks ?? player.picks.length > 0;
         const picksVisible = player.picks.length > 0;
-        const rank = index + 1;
+        const rank = ranks[index];
         const dominantTeamId = picksVisible ? getDominantTeamId(player.picks) : null;
         const dominantName = dominantTeamId === homeTeamId ? homeTeamName : dominantTeamId === awayTeamId ? awayTeamName : undefined;
         const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId, dominantName).primary : null;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getFixtureDetails, getFixtureEvents, getFixturePlayerStats } from '@/lib/api-football';
+import { getFixtureDetails, getFixtureEvents, getFixturePlayerStats, clearFixtureCaches } from '@/lib/api-football';
 import { calculatePlayerPoints } from '@/lib/scoring';
 
 export const dynamic = 'force-dynamic';
@@ -27,11 +27,25 @@ async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamI
   refreshLocks.set(fixtureId, lockPromise);
 
   try {
+    // Check previous status to detect transition to finished
+    const prevCache = await prisma.matchCache.findUnique({ where: { fixtureId } });
+    const prevStatus = prevCache?.status;
+
     const fixture = await getFixtureDetails(fixtureId);
     const status = fixture.fixture.status.short;
     const homeScore = fixture.goals.home;
     const awayScore = fixture.goals.away;
-    const minute = fixture.fixture.status.elapsed;
+    const elapsed = fixture.fixture.status.elapsed ?? 0;
+    const extra = fixture.fixture.status.extra ?? 0;
+    const minute = elapsed + extra || null;
+
+    // When match just finished, clear in-memory caches to force fresh final stats from API
+    const isNowFinished = ['FT', 'AET', 'PEN'].includes(status);
+    const wasNotFinished = !prevStatus || !['FT', 'AET', 'PEN'].includes(prevStatus);
+    if (isNowFinished && wasNotFinished) {
+      console.log(`[Live] Match ${fixtureId} just finished (${status}), clearing caches for final stats`);
+      clearFixtureCaches(fixtureId);
+    }
 
     let events: any[] | null = null;
     let playerStats: any[] | null = null;

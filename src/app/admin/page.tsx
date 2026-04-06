@@ -108,6 +108,18 @@ export default function AdminPage() {
     if (authenticated && adminPassword) fetchRooms(adminPassword);
   }, [authenticated, adminPassword]);
 
+  // Auto-refresh when returning to the page
+  useEffect(() => {
+    if (!authenticated || !adminPassword) return;
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        fetchRooms(adminPassword);
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [authenticated, adminPassword]);
+
   async function handleDelete(roomId: string, roomCode: string) {
     if (!confirm(`Delete game ${roomCode}? This cannot be undone.`)) return;
     setDeleting(roomId);

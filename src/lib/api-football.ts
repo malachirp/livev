@@ -240,6 +240,13 @@ export async function getFixtureEvents(fixtureId: number): Promise<ApiFixtureEve
   return results;
 }
 
+// Clear in-memory caches for a fixture (used when match finishes to force fresh final stats)
+export function clearFixtureCaches(fixtureId: number) {
+  fixtureDetailsCache.delete(fixtureId);
+  fixtureEventsCache.delete(fixtureId);
+  fixturePlayerStatsCache.delete(fixtureId);
+}
+
 export async function getFixturePlayerStats(fixtureId: number): Promise<ApiFixturePlayersResponse[]> {
   const cached = getCached(fixturePlayerStatsCache, fixtureId);
   if (cached) {
