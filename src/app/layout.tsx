@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://livev.up.railway.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'LIVE V — Mini Fantasy Football',
   description: 'Pick your 5-a-side team and compete with friends on a single match.',
   openGraph: {
@@ -9,11 +12,13 @@ export const metadata: Metadata = {
     description: 'Pick 5 players. Watch them score live. Beat your mates.',
     siteName: 'LIVE V',
     type: 'website',
+    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'LIVE V — Mini Fantasy Football' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'LIVE V — Mini Fantasy Football',
     description: 'Pick 5 players. Watch them score live. Beat your mates.',
+    images: ['/api/og'],
   },
 };
 
