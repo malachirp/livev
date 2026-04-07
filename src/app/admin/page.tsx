@@ -67,38 +67,52 @@ function formatDate(iso: string) {
 
 function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; count: number }[]; color?: string; label: string }) {
   const max = Math.max(...data.map(d => d.count), 1);
-  const chartH = 120;
-  const barW = Math.max(4, Math.floor((100 / data.length) * 0.7));
-  const gap = Math.max(1, Math.floor((100 / data.length) * 0.3));
+  const padL = 28; // space for Y-axis labels
+  const padR = 8;
+  const padT = 16; // space for value labels above bars
+  const padB = 18; // space for date labels
+  const chartW = 280;
+  const chartH = 100;
+  const totalW = padL + chartW + padR;
+  const totalH = padT + chartH + padB;
+  const barW = (chartW / data.length) * 0.7;
+  const step = chartW / data.length;
+
+  // Y-axis tick values
+  const yTicks = max <= 3 ? [0, 1, 2, 3].filter(v => v <= max) : [0, Math.round(max / 2), max];
 
   return (
     <div>
       <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
-      <div className="bg-charcoal/40 rounded-xl p-3 overflow-x-auto">
-        <svg width="100%" viewBox={`0 0 ${data.length * (barW + gap)} ${chartH + 20}`} preserveAspectRatio="none">
+      <div className="bg-charcoal/40 rounded-xl p-3">
+        <svg width="100%" viewBox={`0 0 ${totalW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+          {/* Y-axis labels + grid lines */}
+          {yTicks.map(v => {
+            const y = padT + chartH - (v / max) * chartH;
+            return (
+              <g key={v}>
+                <line x1={padL} y1={y} x2={padL + chartW} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+                <text x={padL - 4} y={y + 3} textAnchor="end" fontSize="7" fill="rgba(255,255,255,0.3)">{v}</text>
+              </g>
+            );
+          })}
+          {/* Bars */}
           {data.map((d, i) => {
             const h = (d.count / max) * chartH;
-            const x = i * (barW + gap);
+            const x = padL + i * step + (step - barW) / 2;
             return (
               <g key={d.date}>
                 <rect
                   x={x}
-                  y={chartH - h}
+                  y={padT + chartH - h}
                   width={barW}
                   height={Math.max(h, 0.5)}
                   rx={1.5}
                   fill={d.count > 0 ? color : 'rgba(255,255,255,0.05)'}
                   opacity={d.count > 0 ? 0.8 : 1}
                 />
-                {/* Show label for every 7th day */}
                 {i % 7 === 0 && (
-                  <text
-                    x={x + barW / 2}
-                    y={chartH + 14}
-                    textAnchor="middle"
-                    fontSize="6"
-                    fill="rgba(255,255,255,0.3)"
-                  >
+                  <text x={x + barW / 2} y={padT + chartH + 12} textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.3)">
                     {d.date.slice(5)}
                   </text>
                 )}
@@ -106,10 +120,6 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
             );
           })}
         </svg>
-        <div className="flex justify-between text-[10px] text-white/30 mt-1">
-          <span>30 days ago</span>
-          <span>Today</span>
-        </div>
       </div>
     </div>
   );
@@ -118,29 +128,47 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
 function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; total: number }[]; color?: string; label: string }) {
   if (data.length < 2) return null;
   const max = Math.max(...data.map(d => d.total), 1);
-  const w = 300;
-  const h = 120;
-  const padY = 10;
+  const padL = 32; // space for Y-axis labels
+  const padR = 12;
+  const padT = 20; // space for value labels above line
+  const padB = 18; // space for date labels
+  const chartW = 260;
+  const chartH = 100;
+  const totalW = padL + chartW + padR;
+  const totalH = padT + chartH + padB;
 
   const points = data.map((d, i) => ({
-    x: (i / (data.length - 1)) * w,
-    y: padY + (h - 2 * padY) - ((d.total / max) * (h - 2 * padY)),
+    x: padL + (i / (data.length - 1)) * chartW,
+    y: padT + chartH - ((d.total / max) * chartH),
   }));
 
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaD = `${pathD} L ${w} ${h} L 0 ${h} Z`;
+  const areaD = `${pathD} L ${padL + chartW} ${padT + chartH} L ${padL} ${padT + chartH} Z`;
+
+  // Y-axis ticks
+  const yTicks = [0, Math.round(max / 2), max];
 
   return (
     <div>
       <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
       <div className="bg-charcoal/40 rounded-xl p-3">
-        <svg width="100%" viewBox={`0 0 ${w} ${h + 20}`} preserveAspectRatio="none">
+        <svg width="100%" viewBox={`0 0 ${totalW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id={`grad-${label.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity="0.3" />
               <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
           </defs>
+          {/* Y-axis labels + grid lines */}
+          {yTicks.map(v => {
+            const y = padT + chartH - (v / max) * chartH;
+            return (
+              <g key={v}>
+                <line x1={padL} y1={y} x2={padL + chartW} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+                <text x={padL - 4} y={y + 3} textAnchor="end" fontSize="7" fill="rgba(255,255,255,0.3)">{v}</text>
+              </g>
+            );
+          })}
           {/* Area fill */}
           <path d={areaD} fill={`url(#grad-${label.replace(/\s/g, '')})`} />
           {/* Line */}
@@ -149,31 +177,22 @@ function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; t
           <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3" fill={color} />
           {/* Current value label */}
           <text
-            x={points[points.length - 1].x - 5}
+            x={points[points.length - 1].x}
             y={points[points.length - 1].y - 8}
-            fontSize="10"
+            fontSize="9"
             fill={color}
             fontWeight="bold"
-            textAnchor="end"
+            textAnchor="middle"
           >
             {data[data.length - 1].total}
           </text>
           {/* Date labels */}
-          {data.filter((_, i) => i === 0 || i === data.length - 1 || i === Math.floor(data.length / 2)).map((d, idx) => {
-            const i = idx === 0 ? 0 : idx === 1 ? Math.floor(data.length / 2) : data.length - 1;
-            return (
-              <text
-                key={d.date}
-                x={points[i].x}
-                y={h + 14}
-                textAnchor={i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}
-                fontSize="7"
-                fill="rgba(255,255,255,0.3)"
-              >
-                {d.date.slice(5)}
-              </text>
-            );
-          })}
+          <text x={padL} y={padT + chartH + 14} textAnchor="start" fontSize="7" fill="rgba(255,255,255,0.3)">
+            {data[0].date.slice(5)}
+          </text>
+          <text x={padL + chartW} y={padT + chartH + 14} textAnchor="end" fontSize="7" fill="rgba(255,255,255,0.3)">
+            {data[data.length - 1].date.slice(5)}
+          </text>
         </svg>
       </div>
     </div>

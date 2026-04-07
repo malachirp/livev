@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getFixtureDetails } from '@/lib/api-football';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,8 @@ function checkAdminAuth(): boolean {
   const authHeader = headersList.get('x-admin-password');
   return authHeader === adminPassword;
 }
+
+const FINISHED_STATUSES = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'PST', 'AWD', 'WO'];
 
 export async function GET(request: Request) {
   if (!checkAdminAuth()) {
@@ -33,6 +36,55 @@ export async function GET(request: Request) {
       where: { fixtureId: { in: fixtureIds } },
     });
     const statusMap = new Map(matchCaches.map(mc => [mc.fixtureId, mc]));
+
+    // Find fixtures with stale statuses that need refreshing:
+    // - Match date was >3 hours ago but status isn't finished
+    // - Or no cache entry exists and match date has passed
+    const now = Date.now();
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+    const fixtureMap = new Map(rooms.map(r => [r.fixtureId, r]));
+    const staleFixtureIds: number[] = [];
+
+    for (const fixtureId of fixtureIds) {
+      const room = fixtureMap.get(fixtureId);
+      if (!room) continue;
+      const kickoff = new Date(room.matchDate).getTime();
+      const matchShouldBeOver = now > kickoff + THREE_HOURS;
+      const cache = statusMap.get(fixtureId);
+
+      if (matchShouldBeOver && (!cache || !FINISHED_STATUSES.includes(cache.status))) {
+        staleFixtureIds.push(fixtureId);
+      } else if (!cache && now > kickoff) {
+        // Match started but no cache at all
+        staleFixtureIds.push(fixtureId);
+      }
+    }
+
+    // Refresh stale fixtures (limit to 5 to avoid slamming the API)
+    if (staleFixtureIds.length > 0) {
+      const toRefresh = staleFixtureIds.slice(0, 5);
+      const results = await Promise.allSettled(
+        toRefresh.map(async (fixtureId) => {
+          try {
+            const fixture = await getFixtureDetails(fixtureId);
+            const status = fixture.fixture.status.short;
+            const homeScore = fixture.goals.home;
+            const awayScore = fixture.goals.away;
+            const minute = fixture.fixture.status.elapsed;
+
+            await prisma.matchCache.upsert({
+              where: { fixtureId },
+              update: { status, homeScore, awayScore, minute },
+              create: { fixtureId, status, homeScore, awayScore, minute, events: [], playerStats: [] },
+            });
+
+            statusMap.set(fixtureId, { status, homeScore, awayScore, minute } as any);
+          } catch (err) {
+            console.error(`[Admin] Failed to refresh fixture ${fixtureId}:`, err);
+          }
+        })
+      );
+    }
 
     const roomsData = rooms.map(room => {
       const cache = statusMap.get(room.fixtureId);
