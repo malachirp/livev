@@ -12,10 +12,10 @@ export const metadata: Metadata = {
     description: 'Pick 5 players. Watch them score live. Beat your mates.',
     siteName: 'LIVE V',
     type: 'website',
-    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'LIVE V — Mini Fantasy Football' }],
+    images: [{ url: '/api/og', width: 400, height: 210, alt: 'LIVE V' }],
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'LIVE V — Mini Fantasy Football',
     description: 'Pick 5 players. Watch them score live. Beat your mates.',
     images: ['/api/og'],
