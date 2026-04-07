@@ -95,7 +95,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               <h3 className="text-xs font-bold text-live-red uppercase tracking-wider mb-2">Deductions</h3>
               <div className="space-y-0.5">
                 <ScoreRow label="Foul Committed" value="-1" negative />
-                <ScoreRow label="Goals Conceded 3+ (GK)" value="-2" negative />
+                <ScoreRow label="Goals Conceded 3+ (GK)" value="-3" negative />
                 <ScoreRow label="Yellow Card" value="-2" negative />
                 <ScoreRow label="Red Card" value="-4" negative />
                 <ScoreRow label="Own Goal" value="-4" negative />

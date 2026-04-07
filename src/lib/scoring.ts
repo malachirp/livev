@@ -37,7 +37,7 @@ export const SCORING = {
   CLEAN_SHEET_GK: 6,
   CLEAN_SHEET_DEF: 4,
   PENALTY_SAVE: 6,
-  GOALS_CONCEDED_3_PLUS: -2, // GK penalty when team concedes 3+ goals
+  GOALS_CONCEDED_3_PLUS: -3, // GK penalty when team concedes 3+ goals
   YELLOW_CARD: -2,
   RED_CARD: -4,
   OWN_GOAL: -4,

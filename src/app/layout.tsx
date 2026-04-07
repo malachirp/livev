@@ -4,6 +4,17 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'LIVE V — Mini Fantasy Football',
   description: 'Pick your 5-a-side team and compete with friends on a single match.',
+  openGraph: {
+    title: 'LIVE V — Mini Fantasy Football',
+    description: 'Pick 5 players. Watch them score live. Beat your mates.',
+    siteName: 'LIVE V',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LIVE V — Mini Fantasy Football',
+    description: 'Pick 5 players. Watch them score live. Beat your mates.',
+  },
 };
 
 export const viewport: Viewport = {
