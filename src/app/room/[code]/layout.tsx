@@ -11,10 +11,6 @@ export async function generateMetadata({ params }: { params: { code: string } })
     ? `${room.homeTeamName} vs ${room.awayTeamName}`
     : 'Join Game';
 
-  const ogImageUrl = room
-    ? `/api/og?home=${encodeURIComponent(room.homeTeamName)}&away=${encodeURIComponent(room.awayTeamName)}`
-    : '/api/og';
-
   return {
     title: `LIVE V — ${matchTitle}`,
     description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
@@ -23,13 +19,13 @@ export async function generateMetadata({ params }: { params: { code: string } })
       description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
       siteName: 'LIVE V',
       type: 'website',
-      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `LIVE V — ${matchTitle}` }],
+      images: [{ url: '/api/og', width: 1200, height: 630, alt: 'LIVE V' }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `LIVE V — ${matchTitle}`,
       description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
-      images: [ogImageUrl],
+      images: ['/api/og'],
     },
   };
 }
