@@ -84,6 +84,7 @@ export async function GET(
         ? {
             id: currentPlayer.id,
             displayName: currentPlayer.displayName,
+            isCreator: currentPlayer.isCreator,
             hasPicks: currentPlayer.picks.length > 0,
             captainSlot: currentPlayer.captainSlot,
           }

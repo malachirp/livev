@@ -20,6 +20,9 @@ export default function PickTeamPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasLineups, setHasLineups] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+  const [hadExistingPicks, setHadExistingPicks] = useState(false);
+  const [showSharePrompt, setShowSharePrompt] = useState(false);
   const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
   const fixtureIdRef = useRef<number | null>(null);
 
@@ -69,7 +72,9 @@ export default function PickTeamPage() {
           return;
         }
 
+        if (roomData.currentPlayer?.isCreator) setIsCreator(true);
         if (roomData.currentPlayer?.hasPicks) {
+          setHadExistingPicks(true);
           const playerData = roomData.room.players.find(
             (p: any) => p.id === roomData.currentPlayer.id
           );
@@ -136,6 +141,13 @@ export default function PickTeamPage() {
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to save picks');
+      }
+
+      // Show share prompt for host's first pick
+      if (isCreator && !hadExistingPicks) {
+        setShowSharePrompt(true);
+        setSubmitting(false);
+        return;
       }
 
       router.push(`/room/${code}`);
@@ -229,6 +241,45 @@ export default function PickTeamPage() {
           existingCaptainSlot={existingCaptainSlot}
           hasLineups={hasLineups}
         />
+      )}
+
+      {/* Share prompt overlay for host after first pick */}
+      {showSharePrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="mx-6 w-full max-w-sm bg-navy border border-white/10 rounded-3xl p-8 text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00f5a0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-black text-white mb-2">Team locked in!</h2>
+            <p className="text-sm text-white/50 mb-6">
+              Share your game room so your mates can pick their squads
+            </p>
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}/room/${code}`;
+                if (navigator.share) {
+                  try { await navigator.share({ url }); } catch { /* cancelled */ }
+                } else {
+                  await navigator.clipboard.writeText(url);
+                }
+                router.push(`/room/${code}`);
+              }}
+              className="w-full py-4 rounded-2xl bg-accent text-navy font-black text-base active:scale-[0.98] transition-all mb-3"
+            >
+              Share with friends
+            </button>
+            <button
+              onClick={() => router.push(`/room/${code}`)}
+              className="text-sm text-white/40 font-medium"
+            >
+              Later
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
