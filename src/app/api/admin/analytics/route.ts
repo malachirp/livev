@@ -53,7 +53,7 @@ export async function GET() {
     fixtureMatchDates.forEach((_, id) => allFixtureIds.add(id));
     const uniqueFixtures = allFixtureIds.size;
 
-    for (const [fixtureId, status] of statusByFixture) {
+    statusByFixture.forEach((status, fixtureId) => {
       const matchDate = fixtureMatchDates.get(fixtureId);
       const shouldBeOver = matchDate && (now > matchDate.getTime() + THREE_HOURS);
 
@@ -65,7 +65,7 @@ export async function GET() {
       } else if (liveStatuses.includes(status)) {
         activeFixtures++;
       }
-    }
+    });
 
     // Players per game distribution
     const roomsWithCounts = await prisma.room.findMany({
