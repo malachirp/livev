@@ -48,7 +48,10 @@ export async function GET() {
     // still shows live/NS, count it as finished instead
     let activeFixtures = 0;
     let finishedFixtures = 0;
-    const uniqueFixtures = new Set([...statusByFixture.keys(), ...fixtureMatchDates.keys()]).size;
+    const allFixtureIds = new Set<number>();
+    statusByFixture.forEach((_, id) => allFixtureIds.add(id));
+    fixtureMatchDates.forEach((_, id) => allFixtureIds.add(id));
+    const uniqueFixtures = allFixtureIds.size;
 
     for (const [fixtureId, status] of statusByFixture) {
       const matchDate = fixtureMatchDates.get(fixtureId);
