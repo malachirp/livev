@@ -24,15 +24,45 @@ export async function GET() {
       prisma.pick.count(),
     ]);
 
-    // Match status breakdown
+    // Match status breakdown — cross-reference with room match dates to avoid stale counts
     const matchCaches = await prisma.matchCache.findMany({
       select: { fixtureId: true, status: true },
     });
+    const statusByFixture = new Map(matchCaches.map(mc => [mc.fixtureId, mc.status]));
+
+    // Get all rooms with match dates to correct stale statuses
+    const allRoomsForStatus = await prisma.room.findMany({
+      select: { fixtureId: true, matchDate: true },
+    });
+    const fixtureMatchDates = new Map<number, Date>();
+    for (const r of allRoomsForStatus) {
+      fixtureMatchDates.set(r.fixtureId, r.matchDate);
+    }
+
     const liveStatuses = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'];
-    const finishedStatuses = ['FT', 'AET', 'PEN'];
-    const activeFixtures = matchCaches.filter(mc => liveStatuses.includes(mc.status)).length;
-    const finishedFixtures = matchCaches.filter(mc => finishedStatuses.includes(mc.status)).length;
-    const uniqueFixtures = matchCaches.length;
+    const finishedStatuses = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'PST', 'AWD', 'WO'];
+    const now = Date.now();
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+    // Correct status counts: if a match should be over (kickoff +3h ago) but cache
+    // still shows live/NS, count it as finished instead
+    let activeFixtures = 0;
+    let finishedFixtures = 0;
+    const uniqueFixtures = new Set([...statusByFixture.keys(), ...fixtureMatchDates.keys()]).size;
+
+    for (const [fixtureId, status] of statusByFixture) {
+      const matchDate = fixtureMatchDates.get(fixtureId);
+      const shouldBeOver = matchDate && (now > matchDate.getTime() + THREE_HOURS);
+
+      if (finishedStatuses.includes(status)) {
+        finishedFixtures++;
+      } else if (shouldBeOver) {
+        // Stale — match should be finished by now, don't count as live
+        finishedFixtures++;
+      } else if (liveStatuses.includes(status)) {
+        activeFixtures++;
+      }
+    }
 
     // Players per game distribution
     const roomsWithCounts = await prisma.room.findMany({
