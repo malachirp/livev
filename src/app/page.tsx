@@ -74,9 +74,11 @@ export default function CreateGamePage() {
       });
   }, []);
 
-  const filteredFixtures = data?.fixtures.filter(f =>
-    selectedLeague ? f.league.id === selectedLeague : true
-  ) || [];
+  const filteredFixtures = data?.fixtures.filter(f => {
+    // Hide fixtures past kickoff (cache may still have them as NS)
+    if (new Date(f.fixture.date).getTime() <= Date.now()) return false;
+    return selectedLeague ? f.league.id === selectedLeague : true;
+  }) || [];
 
   // Group by date
   const grouped = filteredFixtures.reduce<Record<string, ApiFixture[]>>((acc, f) => {
