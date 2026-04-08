@@ -5,17 +5,34 @@ import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import MatchBanner from '@/components/MatchBanner';
 import Leaderboard from '@/components/Leaderboard';
+import GlobalLeaderboard from '@/components/GlobalLeaderboard';
 import ShareButton from '@/components/ShareButton';
 import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
-import type { RoomData, PlayerData, ApiFixtureEvent } from '@/types';
+import type { RoomData, PlayerData, ApiFixtureEvent, PickSlot } from '@/types';
 import HelpButton from '@/components/HelpButton';
 import { track } from '@/lib/track';
+
+interface GlobalEntry {
+  displayName: string;
+  totalPoints: number;
+  rank: number;
+  hasPicks: boolean;
+  isYou: boolean;
+  picks: PickSlot[];
+}
+
+interface GlobalLeaderboardData {
+  totalPlayers: number;
+  top: GlobalEntry[];
+  currentUser: GlobalEntry | null;
+}
 
 interface RoomResponse {
   room: RoomData & { teamsLocked: boolean; lockTime: string };
   currentPlayer: { id: string; displayName: string; hasPicks: boolean } | null;
   match: { status: string; homeScore: number | null; awayScore: number | null; minute: number | null };
+  globalLeaderboard: GlobalLeaderboardData;
 }
 
 interface LiveResponse {
@@ -28,6 +45,7 @@ interface LiveResponse {
   };
   teamsLocked: boolean;
   leaderboard: PlayerData[];
+  globalLeaderboard: GlobalLeaderboardData;
 }
 
 export default function LiveRoomPage() {
@@ -45,6 +63,8 @@ export default function LiveRoomPage() {
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global'>('friends');
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, top: [], currentUser: null });
 
   // Join form state
   const [showJoin, setShowJoin] = useState(false);
@@ -102,6 +122,7 @@ export default function LiveRoomPage() {
         setLeaderboard(data.room.players);
         setTeamsLocked(data.room.teamsLocked);
         setLockTime(data.room.lockTime);
+        if (data.globalLeaderboard) setGlobalLeaderboard(data.globalLeaderboard);
         setLoading(false);
       } catch {
         setError('Room not found');
@@ -123,6 +144,7 @@ export default function LiveRoomPage() {
       setLeaderboard(data.leaderboard);
       if (data.match.events) setEvents(data.match.events);
       if (data.teamsLocked !== undefined) setTeamsLocked(data.teamsLocked);
+      if (data.globalLeaderboard) setGlobalLeaderboard(data.globalLeaderboard);
     } catch {
       // Silently fail on poll errors
     }
@@ -319,11 +341,8 @@ export default function LiveRoomPage() {
         events={events}
       />
 
-      {/* Player count + lock status */}
-      <div className="px-4 pt-4 flex items-center justify-between">
-        <span className="text-xs font-bold text-white/40 uppercase tracking-wider">
-          {leaderboard.length} player{leaderboard.length !== 1 ? 's' : ''}
-        </span>
+      {/* Lock status */}
+      <div className="px-4 pt-4 flex items-center justify-end">
         {finished ? (
           <span className="text-xs font-bold text-points-gold bg-points-gold/10 px-3 py-1 rounded-full">
             Final Results
@@ -339,15 +358,55 @@ export default function LiveRoomPage() {
         ) : null}
       </div>
 
+      {/* Friends / Global toggle */}
+      <div className="px-4 pt-2 pb-1">
+        <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
+          <button
+            onClick={() => setLeaderboardView('friends')}
+            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
+              leaderboardView === 'friends'
+                ? 'bg-accent/20 text-accent'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Friends ({leaderboard.length})
+          </button>
+          <button
+            onClick={() => setLeaderboardView('global')}
+            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
+              leaderboardView === 'global'
+                ? 'bg-accent/20 text-accent'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Global ({globalLeaderboard.totalPlayers})
+          </button>
+        </div>
+      </div>
+
       {/* Leaderboard */}
-      <Leaderboard
-        players={leaderboard}
-        homeTeamId={room.homeTeamId}
-        awayTeamId={room.awayTeamId}
-        homeTeamName={room.homeTeamName}
-        awayTeamName={room.awayTeamName}
-        teamsLocked={teamsLocked}
-      />
+      {leaderboardView === 'friends' ? (
+        <Leaderboard
+          players={leaderboard}
+          homeTeamId={room.homeTeamId}
+          awayTeamId={room.awayTeamId}
+          homeTeamName={room.homeTeamName}
+          awayTeamName={room.awayTeamName}
+          teamsLocked={teamsLocked}
+        />
+      ) : (
+        <GlobalLeaderboard
+          totalPlayers={globalLeaderboard.totalPlayers}
+          top={globalLeaderboard.top}
+          currentUser={globalLeaderboard.currentUser}
+          homeTeamId={room.homeTeamId}
+          awayTeamId={room.awayTeamId}
+          homeTeamName={room.homeTeamName}
+          awayTeamName={room.awayTeamName}
+          teamsLocked={teamsLocked}
+          matchStarted={live || finished}
+        />
+      )}
 
       {/* Bottom action bar — only show join/pick/edit before teams lock (5 min before KO) */}
       {!isInGame && canEdit && (

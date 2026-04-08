@@ -8,11 +8,26 @@ import type { ApiFixture, League } from '@/types';
 import { formatMatchDate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { track } from '@/lib/track';
+import { isMatchLive, isMatchFinished } from '@/types';
 
 interface FixturesResponse {
   fixtures: ApiFixture[];
   leagues: League[];
   availableLeagueIds: number[];
+}
+
+interface MyRoom {
+  code: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeTeamLogo: string | null;
+  awayTeamLogo: string | null;
+  matchDate: string;
+  matchStatus: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  userDisplayName: string;
+  userPoints: number;
 }
 
 export default function CreateGamePage() {
@@ -24,6 +39,8 @@ export default function CreateGamePage() {
   const [selectedFixture, setSelectedFixture] = useState<ApiFixture | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [myRooms, setMyRooms] = useState<MyRoom[]>([]);
+  const [myRoomsDismissed, setMyRoomsDismissed] = useState(false);
 
   // Drag-to-dismiss for fixture bottom sheet
   const fixtureSheetRef = useRef<HTMLDivElement>(null);
@@ -57,6 +74,14 @@ export default function CreateGamePage() {
   };
 
   useEffect(() => { track('page_view', { entry_type: 'direct' }); }, []);
+
+  // Fetch user's existing games
+  useEffect(() => {
+    fetch('/api/me/rooms')
+      .then(res => res.json())
+      .then(data => { if (data.rooms?.length) setMyRooms(data.rooms); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/fixtures')
@@ -141,6 +166,70 @@ export default function CreateGamePage() {
           Create a 5-a-side fantasy game with friends
         </p>
       </div>
+
+      {/* Your Games */}
+      {myRooms.length > 0 && !myRoomsDismissed && (
+        <div className="px-4 pt-2 pb-1">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Your Games</h3>
+            <button
+              onClick={() => setMyRoomsDismissed(true)}
+              className="text-white/20 hover:text-white/40 transition-colors p-1"
+              aria-label="Dismiss"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {myRooms.map(room => {
+              const roomLive = isMatchLive(room.matchStatus);
+              const roomFinished = isMatchFinished(room.matchStatus);
+              return (
+                <a
+                  key={room.code}
+                  href={`/room/${room.code}`}
+                  className="flex-shrink-0 bg-charcoal/60 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all min-w-[180px]"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {room.homeTeamLogo && (
+                      <img src={room.homeTeamLogo} alt="" className="w-5 h-5 object-contain" />
+                    )}
+                    <span className="text-[11px] font-bold text-white/60 truncate">{room.homeTeamName}</span>
+                    {roomFinished && room.homeScore !== null && room.awayScore !== null ? (
+                      <span className="text-[11px] font-black text-accent">{room.homeScore}-{room.awayScore}</span>
+                    ) : (
+                      <span className="text-[11px] text-white/20">vs</span>
+                    )}
+                    <span className="text-[11px] font-bold text-white/60 truncate">{room.awayTeamName}</span>
+                    {room.awayTeamLogo && (
+                      <img src={room.awayTeamLogo} alt="" className="w-5 h-5 object-contain" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {roomLive ? (
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-live-red live-dot" />
+                        <span className="text-[10px] font-bold text-live-red uppercase">Live</span>
+                      </span>
+                    ) : roomFinished ? (
+                      <span className="text-[10px] font-bold text-white/30">
+                        FT · {room.userPoints} pts
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-white/30">
+                        {new Date(room.matchDate).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold text-accent">Return →</span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* League filters */}
       {data && data.availableLeagueIds.length > 0 && (
