@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { track } from '@/lib/track';
 
 export default function ShareButton({ roomCode, matchTitle }: { roomCode: string; matchTitle?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
+    track('share_clicked', { roomCode });
     const url = roomCode ? `${window.location.origin}/room/${roomCode}` : window.location.origin;
 
     if (navigator.share) {

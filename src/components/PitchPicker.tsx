@@ -301,7 +301,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
               : 'bg-charcoal text-white/30 cursor-not-allowed'
           }`}
         >
-          {submitting ? 'Locking in...' : allFilled ? 'Lock In Team' : `Pick ${5 - picks.filter(Boolean).length} more`}
+          {submitting ? 'Saving...' : allFilled ? 'Save Team' : `Pick ${5 - picks.filter(Boolean).length} more`}
         </button>
       </div>
     </div>

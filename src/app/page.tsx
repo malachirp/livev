@@ -7,6 +7,7 @@ import FixtureCard from '@/components/FixtureCard';
 import type { ApiFixture, League } from '@/types';
 import { formatMatchDate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { track } from '@/lib/track';
 
 interface FixturesResponse {
   fixtures: ApiFixture[];
@@ -54,6 +55,8 @@ export default function CreateGamePage() {
     fixtureDragStartY.current = null;
     fixtureTranslateY.current = 0;
   };
+
+  useEffect(() => { track('page_view'); }, []);
 
   useEffect(() => {
     fetch('/api/fixtures')
@@ -117,6 +120,7 @@ export default function CreateGamePage() {
       }
 
       const { code } = await res.json();
+      track('game_created', { code });
       router.push(`/room/${code}/pick`);
     } catch (err: any) {
       setError(err.message);

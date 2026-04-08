@@ -10,6 +10,7 @@ import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
 import type { RoomData, PlayerData, ApiFixtureEvent } from '@/types';
 import HelpButton from '@/components/HelpButton';
+import { track } from '@/lib/track';
 
 interface RoomResponse {
   room: RoomData & { teamsLocked: boolean; lockTime: string };
@@ -84,6 +85,8 @@ export default function LiveRoomPage() {
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const finishedSinceRef = useRef<number | null>(null);
+
+  useEffect(() => { track('page_view'); }, []);
 
   // Initial load
   useEffect(() => {
@@ -222,6 +225,7 @@ export default function LiveRoomPage() {
         throw new Error(data.error || 'Failed to join');
       }
 
+      track('game_joined', { code });
       setCurrentPlayer({ id: data.playerId, displayName: joinName.trim(), hasPicks: false });
       setShowJoin(false);
 

@@ -24,20 +24,24 @@ interface AdminRoom {
 
 interface Analytics {
   summary: {
-    totalRooms: number;
+    totalGames: number;
     totalPlayers: number;
-    totalPicks: number;
-    uniqueFixtures: number;
-    activeFixtures: number;
-    finishedFixtures: number;
     avgPlayersPerGame: number;
-    maxPlayersInGame: number;
+    gamesThisWeek: number;
   };
   dailyGames: { date: string; count: number }[];
-  dailyPlayers: { date: string; count: number }[];
-  weeklyGames: { date: string; total: number }[];
-  weeklyPlayers: { date: string; total: number }[];
-  topFixtures: { match: string; games: number }[];
+  cumulativeUsers: { date: string; total: number }[];
+  deepDive?: DeepDive;
+}
+
+interface DeepDive {
+  hasEventData: boolean;
+  eventCounts: Record<string, number>;
+  dailyVisitors: { date: string; count: number }[];
+  pageViews: { page: string; count: number }[];
+  hourlyActivity: { hour: number; count: number }[];
+  conversionFunnel: { step: string; label: string; description: string; count: number }[];
+  returnRate: number;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -63,14 +67,14 @@ function formatDate(iso: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// --- Chart components ---
+// ── Chart components ──
 
 function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; count: number }[]; color?: string; label: string }) {
   const max = Math.max(...data.map(d => d.count), 1);
-  const padL = 28; // space for Y-axis labels
+  const padL = 28;
   const padR = 8;
-  const padT = 16; // space for value labels above bars
-  const padB = 18; // space for date labels
+  const padT = 16;
+  const padB = 18;
   const chartW = 280;
   const chartH = 100;
   const totalW = padL + chartW + padR;
@@ -78,7 +82,6 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
   const barW = (chartW / data.length) * 0.7;
   const step = chartW / data.length;
 
-  // Y-axis tick values
   const yTicks = max <= 3 ? [0, 1, 2, 3].filter(v => v <= max) : [0, Math.round(max / 2), max];
 
   return (
@@ -86,7 +89,6 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
       <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
       <div className="bg-charcoal/40 rounded-xl p-3">
         <svg width="100%" viewBox={`0 0 ${totalW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
-          {/* Y-axis labels + grid lines */}
           {yTicks.map(v => {
             const y = padT + chartH - (v / max) * chartH;
             return (
@@ -96,20 +98,14 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
               </g>
             );
           })}
-          {/* Bars */}
           {data.map((d, i) => {
             const h = (d.count / max) * chartH;
             const x = padL + i * step + (step - barW) / 2;
             return (
               <g key={d.date}>
                 <rect
-                  x={x}
-                  y={padT + chartH - h}
-                  width={barW}
-                  height={Math.max(h, 0.5)}
-                  rx={1.5}
-                  fill={d.count > 0 ? color : 'rgba(255,255,255,0.05)'}
-                  opacity={d.count > 0 ? 0.8 : 1}
+                  x={x} y={padT + chartH - h} width={barW} height={Math.max(h, 0.5)}
+                  rx={1.5} fill={d.count > 0 ? color : 'rgba(255,255,255,0.05)'} opacity={d.count > 0 ? 0.8 : 1}
                 />
                 {i % 7 === 0 && (
                   <text x={x + barW / 2} y={padT + chartH + 12} textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.3)">
@@ -128,10 +124,10 @@ function BarChart({ data, color = '#00f5a0', label }: { data: { date: string; co
 function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; total: number }[]; color?: string; label: string }) {
   if (data.length < 2) return null;
   const max = Math.max(...data.map(d => d.total), 1);
-  const padL = 32; // space for Y-axis labels
+  const padL = 32;
   const padR = 12;
-  const padT = 20; // space for value labels above line
-  const padB = 18; // space for date labels
+  const padT = 20;
+  const padB = 18;
   const chartW = 260;
   const chartH = 100;
   const totalW = padL + chartW + padR;
@@ -145,7 +141,6 @@ function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; t
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   const areaD = `${pathD} L ${padL + chartW} ${padT + chartH} L ${padL} ${padT + chartH} Z`;
 
-  // Y-axis ticks
   const yTicks = [0, Math.round(max / 2), max];
 
   return (
@@ -159,7 +154,6 @@ function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; t
               <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* Y-axis labels + grid lines */}
           {yTicks.map(v => {
             const y = padT + chartH - (v / max) * chartH;
             return (
@@ -169,24 +163,15 @@ function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; t
               </g>
             );
           })}
-          {/* Area fill */}
           <path d={areaD} fill={`url(#grad-${label.replace(/\s/g, '')})`} />
-          {/* Line */}
           <path d={pathD} fill="none" stroke={color} strokeWidth="2" />
-          {/* End point */}
           <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3" fill={color} />
-          {/* Current value label */}
           <text
-            x={points[points.length - 1].x}
-            y={points[points.length - 1].y - 8}
-            fontSize="9"
-            fill={color}
-            fontWeight="bold"
-            textAnchor="middle"
+            x={points[points.length - 1].x} y={points[points.length - 1].y - 8}
+            fontSize="9" fill={color} fontWeight="bold" textAnchor="middle"
           >
             {data[data.length - 1].total}
           </text>
-          {/* Date labels */}
           <text x={padL} y={padT + chartH + 14} textAnchor="start" fontSize="7" fill="rgba(255,255,255,0.3)">
             {data[0].date.slice(5)}
           </text>
@@ -199,16 +184,112 @@ function LineChart({ data, color = '#00f5a0', label }: { data: { date: string; t
   );
 }
 
-function StatCard({ value, label, accent }: { value: string | number; label: string; accent?: boolean }) {
+function StatCard({ value, label, description, accent }: { value: string | number; label: string; description: string; accent?: boolean }) {
   return (
-    <div className="bg-charcoal/60 rounded-xl p-3 border border-white/5">
+    <div className="bg-charcoal/60 rounded-xl p-3 border border-white/5" title={description}>
       <div className={`text-xl font-black ${accent ? 'text-accent' : 'text-white'}`}>{value}</div>
       <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">{label}</div>
+      <div className="text-[9px] text-white/25 mt-0.5 leading-tight">{description}</div>
     </div>
   );
 }
 
-// --- Main page ---
+// ── Deep dive chart: horizontal bar ──
+
+function HorizontalBar({ data, color = '#00f5a0', label }: { data: { label: string; value: number; description?: string }[]; color?: string; label: string }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div>
+      <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
+      <div className="bg-charcoal/40 rounded-xl p-4 space-y-2">
+        {data.map((d, i) => (
+          <div key={i}>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs font-semibold text-white/70" title={d.description}>{d.label}</span>
+              <span className="text-xs font-bold" style={{ color }}>{d.value.toLocaleString()}</span>
+            </div>
+            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${(d.value / max) * 100}%`, backgroundColor: color, opacity: 0.6 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Hourly heatmap ──
+
+function HourlyChart({ data, label }: { data: { hour: number; count: number }[]; label: string }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div>
+      <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
+      <div className="bg-charcoal/40 rounded-xl p-4">
+        <div className="flex gap-[2px] items-end h-16">
+          {data.map(d => (
+            <div key={d.hour} className="flex-1 flex flex-col items-center gap-0.5">
+              <div
+                className="w-full rounded-sm transition-all"
+                style={{
+                  height: `${Math.max((d.count / max) * 56, 2)}px`,
+                  backgroundColor: d.count > 0 ? `rgba(0,245,160,${0.2 + (d.count / max) * 0.6})` : 'rgba(255,255,255,0.03)',
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className="text-[8px] text-white/25">00:00</span>
+          <span className="text-[8px] text-white/25">06:00</span>
+          <span className="text-[8px] text-white/25">12:00</span>
+          <span className="text-[8px] text-white/25">18:00</span>
+          <span className="text-[8px] text-white/25">23:00</span>
+        </div>
+        <p className="text-[9px] text-white/25 mt-1 text-center">Hour of day (UTC)</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Funnel chart ──
+
+function FunnelChart({ data, label }: { data: { label: string; description: string; count: number }[]; label: string }) {
+  if (data.length === 0) return null;
+  const max = data[0].count || 1;
+  return (
+    <div>
+      <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">{label}</h4>
+      <div className="bg-charcoal/40 rounded-xl p-4 space-y-1">
+        {data.map((d, i) => {
+          const pct = max > 0 ? Math.round((d.count / max) * 100) : 0;
+          return (
+            <div key={i} title={d.description}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-semibold text-white/70">{d.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-accent">{d.count.toLocaleString()}</span>
+                  {i > 0 && <span className="text-[10px] text-white/30">{pct}%</span>}
+                </div>
+              </div>
+              <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-accent/50 transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {d.description && (
+                <p className="text-[9px] text-white/20 mt-0.5">{d.description}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ──
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -217,6 +298,9 @@ export default function AdminPage() {
 
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [deepDive, setDeepDive] = useState<DeepDive | null>(null);
+  const [showDeepDive, setShowDeepDive] = useState(false);
+  const [loadingDeepDive, setLoadingDeepDive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
@@ -224,7 +308,6 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'live' | 'finished'>('all');
   const [tab, setTab] = useState<'games' | 'analytics'>('games');
 
-  // Check sessionStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('livev_admin') === 'true') {
       const storedPw = sessionStorage.getItem('livev_admin_pw') || '';
@@ -280,7 +363,23 @@ export default function AdminPage() {
       const data = await res.json();
       setAnalytics(data);
     } catch {
-      // Silently fail — analytics is non-critical
+      // Silently fail
+    }
+  }
+
+  async function fetchDeepDive() {
+    setLoadingDeepDive(true);
+    try {
+      const res = await fetch('/api/admin/analytics?deepdive=1', {
+        headers: { 'x-admin-password': adminPassword },
+      });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setDeepDive(data.deepDive || null);
+    } catch {
+      // Silently fail
+    } finally {
+      setLoadingDeepDive(false);
     }
   }
 
@@ -291,7 +390,6 @@ export default function AdminPage() {
     }
   }, [authenticated, adminPassword]);
 
-  // Auto-refresh when returning to the page
   useEffect(() => {
     if (!authenticated || !adminPassword) return;
     function handleVisibility() {
@@ -379,6 +477,13 @@ export default function AdminPage() {
     upcoming: rooms.filter(r => r.matchStatus === 'NS').length,
     live: rooms.filter(r => ['1H', 'HT', '2H', 'ET', 'LIVE'].includes(r.matchStatus)).length,
     finished: rooms.filter(r => ['FT', 'AET', 'PEN'].includes(r.matchStatus)).length,
+  };
+
+  const PAGE_LABELS: Record<string, string> = {
+    '/': 'Homepage',
+    '/room/[code]': 'Game Room',
+    '/room/[code]/pick': 'Pick Team',
+    '/admin': 'Admin',
   };
 
   return (
@@ -563,59 +668,145 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-              {/* Summary cards */}
+              {/* ── Headline metrics: 4 cards ── */}
               <div>
                 <h3 className="text-xs font-bold text-white/30 uppercase tracking-wider mb-2">Overview</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={analytics.summary.totalRooms} label="Total Games" accent />
-                  <StatCard value={analytics.summary.totalPlayers} label="Total Players" accent />
-                  <StatCard value={analytics.summary.uniqueFixtures} label="Unique Fixtures" />
-                  <StatCard value={analytics.summary.activeFixtures} label="Live Now" />
-                  <StatCard value={analytics.summary.avgPlayersPerGame} label="Avg Players/Game" />
-                  <StatCard value={analytics.summary.maxPlayersInGame} label="Most in One Game" />
-                  <StatCard value={analytics.summary.totalPicks} label="Total Picks Made" />
-                  <StatCard value={analytics.summary.finishedFixtures} label="Completed Fixtures" />
+                  <StatCard
+                    value={analytics.summary.totalGames}
+                    label="Total Games"
+                    description="All game rooms created since launch"
+                    accent
+                  />
+                  <StatCard
+                    value={analytics.summary.totalPlayers}
+                    label="Total Players"
+                    description="All users who have joined a game"
+                    accent
+                  />
+                  <StatCard
+                    value={analytics.summary.avgPlayersPerGame}
+                    label="Avg Group Size"
+                    description="Average number of players per game room"
+                  />
+                  <StatCard
+                    value={analytics.summary.gamesThisWeek}
+                    label="Games This Week"
+                    description="Games created in the last 7 days"
+                  />
                 </div>
               </div>
 
-              {/* Daily activity (last 30 days) */}
-              <BarChart data={analytics.dailyGames} color="#00f5a0" label="Games Created (Last 30 Days)" />
-              <BarChart data={analytics.dailyPlayers} color="#60a5fa" label="Players Joined (Last 30 Days)" />
+              {/* ── Chart 1: Daily game activity ── */}
+              <BarChart
+                data={analytics.dailyGames}
+                color="#00f5a0"
+                label="New Games per Day (Last 30 Days)"
+              />
 
-              {/* Cumulative growth */}
-              {analytics.weeklyGames.length >= 2 && (
-                <LineChart data={analytics.weeklyGames} color="#00f5a0" label="Total Games (Cumulative)" />
-              )}
-              {analytics.weeklyPlayers.length >= 2 && (
-                <LineChart data={analytics.weeklyPlayers} color="#60a5fa" label="Total Players (Cumulative)" />
+              {/* ── Chart 2: Cumulative user growth ── */}
+              {analytics.cumulativeUsers.length >= 2 && (
+                <LineChart
+                  data={analytics.cumulativeUsers}
+                  color="#60a5fa"
+                  label="Total Users Over Time (Cumulative, Weekly)"
+                />
               )}
 
-              {/* Top fixtures */}
-              {analytics.topFixtures.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Most Popular Fixtures</h4>
-                  <div className="bg-charcoal/40 rounded-xl p-3 space-y-1.5">
-                    {analytics.topFixtures.map((f, i) => {
-                      const maxGames = analytics.topFixtures[0].games;
-                      return (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className="text-[10px] font-black text-white/30 w-4 text-right">{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-white/80 truncate">{f.match}</span>
-                              <span className="text-[10px] font-bold text-accent flex-shrink-0">{f.games} game{f.games !== 1 ? 's' : ''}</span>
-                            </div>
-                            <div className="mt-0.5 h-1 rounded-full bg-white/5 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-accent/40"
-                                style={{ width: `${(f.games / maxGames) * 100}%` }}
-                              />
-                            </div>
+              {/* ── Deep Dive button ── */}
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    if (!showDeepDive) {
+                      setShowDeepDive(true);
+                      if (!deepDive) fetchDeepDive();
+                    } else {
+                      setShowDeepDive(false);
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-charcoal text-white/70 active:scale-[0.98] transition-all border border-white/10 hover:border-white/20"
+                >
+                  {showDeepDive ? 'Hide Deep Dive' : 'Deep Dive Analytics'}
+                </button>
+                {!showDeepDive && (
+                  <p className="text-[10px] text-white/25 text-center mt-1">Detailed user behaviour analytics — best viewed on desktop</p>
+                )}
+              </div>
+
+              {/* ── Deep Dive section ── */}
+              {showDeepDive && (
+                <div className="space-y-5 pt-2 border-t border-white/10">
+                  <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Deep Dive Analytics</h3>
+                  <p className="text-[10px] text-white/30 -mt-3">
+                    User behaviour data collected via lightweight event tracking. Data starts accumulating after deploy.
+                  </p>
+
+                  {loadingDeepDive ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                    </div>
+                  ) : !deepDive || !deepDive.hasEventData ? (
+                    <div className="bg-charcoal/40 rounded-xl p-6 text-center">
+                      <p className="text-white/40 text-sm font-semibold mb-1">No event data yet</p>
+                      <p className="text-white/25 text-xs">
+                        Event tracking starts collecting data after deploy. Check back after users have visited the site.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary event counts */}
+                      <div>
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Total Events Tracked</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.page_view || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Page Views</div>
+                            <div className="text-[8px] text-white/20">Total page loads across all pages</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.share_clicked || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Shares</div>
+                            <div className="text-[8px] text-white/20">Times the share button was tapped</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-accent">{deepDive.returnRate}%</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Return Rate</div>
+                            <div className="text-[8px] text-white/20">% of visitors who came back on a different day</div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+
+                      {/* Daily unique visitors */}
+                      <BarChart
+                        data={deepDive.dailyVisitors}
+                        color="#a78bfa"
+                        label="Daily Unique Visitors (Last 30 Days)"
+                      />
+
+                      {/* Conversion funnel */}
+                      <FunnelChart
+                        data={deepDive.conversionFunnel}
+                        label="Conversion Funnel (All Time, Unique People)"
+                      />
+
+                      {/* Page views breakdown */}
+                      <HorizontalBar
+                        data={deepDive.pageViews.map(p => ({
+                          label: PAGE_LABELS[p.page] || p.page,
+                          value: p.count,
+                          description: `Views of ${p.page}`,
+                        }))}
+                        color="#60a5fa"
+                        label="Page Views by Page"
+                      />
+
+                      {/* Hourly activity */}
+                      <HourlyChart
+                        data={deepDive.hourlyActivity}
+                        label="Activity by Hour of Day (When Users Are Online)"
+                      />
+                    </>
+                  )}
                 </div>
               )}
             </>

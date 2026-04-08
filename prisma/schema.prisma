@@ -71,3 +71,16 @@ model MatchCache {
   playerStats Json?
   updatedAt   DateTime @updatedAt
 }
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  event     String   // page_view, game_created, game_joined, team_saved, share_clicked, help_opened
+  page      String?  // URL path e.g. "/", "/room/ABC123", "/room/ABC123/pick"
+  metadata  Json?    // Optional extra context
+  sessionId String   // Anonymous browser session ID (not tied to a player account)
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt])
+  @@index([sessionId])
+}

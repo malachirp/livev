@@ -6,6 +6,7 @@ import PitchPicker from '@/components/PitchPicker';
 import ShareButton from '@/components/ShareButton';
 import HelpButton from '@/components/HelpButton';
 import type { NormalizedPlayer, PickData, RoomData } from '@/types';
+import { track } from '@/lib/track';
 
 export default function PickTeamPage() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export default function PickTeamPage() {
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
   const fixtureIdRef = useRef<number | null>(null);
+
+  useEffect(() => { track('page_view'); }, []);
 
   const squadsUrlRef = useRef<string | null>(null);
 
@@ -143,6 +146,8 @@ export default function PickTeamPage() {
         throw new Error(data.error || 'Failed to save picks');
       }
 
+      track('team_saved', { code });
+
       // Show share prompt for host's first pick
       if (isCreator && !hadExistingPicks) {
         setShowSharePrompt(true);
@@ -254,7 +259,7 @@ export default function PickTeamPage() {
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
             </div>
-            <h2 className="text-xl font-black text-white mb-2">Team locked in!</h2>
+            <h2 className="text-xl font-black text-white mb-2">Team saved!</h2>
             <p className="text-sm text-white/50 mb-6">
               Share your game room so your mates can pick their squads
             </p>

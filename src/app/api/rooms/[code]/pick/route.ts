@@ -44,7 +44,7 @@ export async function POST(
     const kickoffTime = new Date(room.matchDate).getTime();
     if (Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS) {
       return NextResponse.json(
-        { error: 'Teams lock 5 minutes before kick off' },
+        { error: 'Teams save 5 minutes before kick off — no changes after that' },
         { status: 400 }
       );
     }

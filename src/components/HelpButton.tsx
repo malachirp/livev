@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { track } from '@/lib/track';
 
 function HelpModal({ onClose }: { onClose: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -111,8 +112,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                 <li>Clean sheets, goals conceded, and win/loss bonuses are awarded at full time</li>
                 <li>Everything else updates live during the match</li>
                 <li>Captain gets 2x total points</li>
-                <li>Teams lock 5 minutes before kick off — no edits after that</li>
-                <li>Other players&apos; teams are hidden until lock, then everyone&apos;s picks are revealed</li>
+                <li>Teams save 5 minutes before kick off — no changes after that</li>
+                <li>Other players&apos; teams are hidden until the deadline, then everyone&apos;s picks are revealed</li>
                 <li>For smaller fixtures, some detailed stats (tackles, dribbles etc.) may not be available — the basics like goals and assists will always work</li>
               </ul>
             </div>
@@ -141,7 +142,7 @@ export default function HelpButton() {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { track('help_opened'); setOpen(true); }}
         className="w-8 h-8 flex items-center justify-center rounded-full bg-charcoal text-white/60 hover:text-white transition-colors text-sm font-black"
         aria-label="How to play"
       >
