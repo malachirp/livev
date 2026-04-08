@@ -41,6 +41,8 @@ export default function CreateGamePage() {
   const [creating, setCreating] = useState(false);
   const [myRooms, setMyRooms] = useState<MyRoom[]>([]);
   const [myRoomsDismissed, setMyRoomsDismissed] = useState(false);
+  const [myRoomsHasMore, setMyRoomsHasMore] = useState(false);
+  const [myRoomsLoading, setMyRoomsLoading] = useState(false);
 
   // Drag-to-dismiss for fixture bottom sheet
   const fixtureSheetRef = useRef<HTMLDivElement>(null);
@@ -77,11 +79,26 @@ export default function CreateGamePage() {
 
   // Fetch user's existing games
   useEffect(() => {
-    fetch('/api/me/rooms')
+    fetch('/api/me/rooms?limit=5&offset=0')
       .then(res => res.json())
-      .then(data => { if (data.rooms?.length) setMyRooms(data.rooms); })
+      .then(data => {
+        if (data.rooms?.length) setMyRooms(data.rooms);
+        setMyRoomsHasMore(!!data.hasMore);
+      })
       .catch(() => {});
   }, []);
+
+  const loadMoreRooms = () => {
+    setMyRoomsLoading(true);
+    fetch(`/api/me/rooms?limit=5&offset=${myRooms.length}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.rooms?.length) setMyRooms(prev => [...prev, ...data.rooms]);
+        setMyRoomsHasMore(!!data.hasMore);
+      })
+      .catch(() => {})
+      .finally(() => setMyRoomsLoading(false));
+  };
 
   useEffect(() => {
     fetch('/api/fixtures')
@@ -227,6 +244,17 @@ export default function CreateGamePage() {
                 </a>
               );
             })}
+            {myRoomsHasMore && (
+              <button
+                onClick={loadMoreRooms}
+                disabled={myRoomsLoading}
+                className="flex-shrink-0 bg-charcoal/40 rounded-xl p-3 border border-white/5 hover:border-accent/20 transition-all min-w-[100px] flex items-center justify-center"
+              >
+                <span className="text-[11px] font-bold text-accent">
+                  {myRoomsLoading ? 'Loading...' : 'More →'}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}

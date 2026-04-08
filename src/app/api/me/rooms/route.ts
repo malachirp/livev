@@ -5,17 +5,20 @@ import { getSessionMap } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const cookieStore = cookies();
     const sessionMap = getSessionMap(cookieStore.get('livev_session')?.value);
-    const roomCodes = Object.keys(sessionMap);
 
-    if (roomCodes.length === 0) {
-      return NextResponse.json({ rooms: [] });
+    if (Object.keys(sessionMap).length === 0) {
+      return NextResponse.json({ rooms: [], hasMore: false });
     }
 
-    // Find all rooms the user is in, with their player data
+    const url = new URL(request.url);
+    const limit = Math.min(Number(url.searchParams.get('limit')) || 5, 20);
+    const offset = Number(url.searchParams.get('offset')) || 0;
+
+    // Find rooms the user is in, with their player data
     const players = await prisma.player.findMany({
       where: {
         sessionToken: { in: Object.values(sessionMap) },
@@ -34,11 +37,15 @@ export async function GET() {
         },
       },
       orderBy: { room: { matchDate: 'desc' } },
-      take: 10,
+      skip: offset,
+      take: limit + 1, // fetch one extra to check if there are more
     });
 
+    const hasMore = players.length > limit;
+    const trimmed = players.slice(0, limit);
+
     // Get match status for each fixture
-    const fixtureIds = Array.from(new Set(players.map(p => p.room.fixtureId)));
+    const fixtureIds = Array.from(new Set(trimmed.map(p => p.room.fixtureId)));
     const caches = fixtureIds.length > 0
       ? await prisma.matchCache.findMany({
           where: { fixtureId: { in: fixtureIds } },
@@ -47,7 +54,7 @@ export async function GET() {
       : [];
     const cacheMap = Object.fromEntries(caches.map(c => [c.fixtureId, c]));
 
-    const rooms = players.map(p => {
+    const rooms = trimmed.map(p => {
       const cache = cacheMap[p.room.fixtureId];
       return {
         code: p.room.code,
@@ -64,9 +71,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ rooms });
+    return NextResponse.json({ rooms, hasMore });
   } catch (error) {
     console.error('Failed to fetch user rooms:', error);
-    return NextResponse.json({ rooms: [] });
+    return NextResponse.json({ rooms: [], hasMore: false });
   }
 }
