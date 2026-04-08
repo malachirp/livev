@@ -214,6 +214,27 @@ export default function GlobalLeaderboard({
         </span>
       </div>
 
+      {/* Current user's position pinned at top if not in top 10 */}
+      {currentUserTeam && (
+        <>
+          <RankRow
+            team={currentUserTeam}
+            homeTeamId={homeTeamId}
+            awayTeamId={awayTeamId}
+            homeTeamName={homeTeamName}
+            awayTeamName={awayTeamName}
+            teamsLocked={teamsLocked}
+            expanded={expandedIdx === 'you'}
+            onToggle={() => setExpandedIdx(expandedIdx === 'you' ? null : 'you')}
+          />
+          <div className="flex items-center gap-2 py-1 px-4">
+            <div className="flex-1 border-t border-white/5" />
+            <span className="text-[10px] text-white/20 font-medium">···</span>
+            <div className="flex-1 border-t border-white/5" />
+          </div>
+        </>
+      )}
+
       {topTeams.map((team, i) => (
         <RankRow
           key={`top-${i}`}
@@ -227,27 +248,6 @@ export default function GlobalLeaderboard({
           onToggle={() => setExpandedIdx(expandedIdx === `top-${i}` ? null : `top-${i}`)}
         />
       ))}
-
-      {/* Current user's position pinned at bottom if not in top 5 */}
-      {currentUserTeam && (
-        <>
-          <div className="flex items-center gap-2 py-1 px-4">
-            <div className="flex-1 border-t border-white/5" />
-            <span className="text-[10px] text-white/20 font-medium">···</span>
-            <div className="flex-1 border-t border-white/5" />
-          </div>
-          <RankRow
-            team={currentUserTeam}
-            homeTeamId={homeTeamId}
-            awayTeamId={awayTeamId}
-            homeTeamName={homeTeamName}
-            awayTeamName={awayTeamName}
-            teamsLocked={teamsLocked}
-            expanded={expandedIdx === 'you'}
-            onToggle={() => setExpandedIdx(expandedIdx === 'you' ? null : 'you')}
-          />
-        </>
-      )}
     </div>
   );
 }
