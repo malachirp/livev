@@ -310,6 +310,7 @@ export default function AdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'live' | 'finished'>('all');
   const [tab, setTab] = useState<'games' | 'analytics'>('games');
+  const [visibleCount, setVisibleCount] = useState(20);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('livev_admin') === 'true') {
@@ -473,7 +474,10 @@ export default function AdminPage() {
     if (filter === 'live') return ['1H', 'HT', '2H', 'ET', 'LIVE'].includes(room.matchStatus);
     if (filter === 'finished') return ['FT', 'AET', 'PEN'].includes(room.matchStatus);
     return true;
-  });
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const visibleRooms = filteredRooms.slice(0, visibleCount);
+  const hasMore = filteredRooms.length > visibleCount;
 
   const counts = {
     all: rooms.length,
@@ -559,7 +563,7 @@ export default function AdminPage() {
               ).map(({ key, label }) => (
                 <button
                   key={key}
-                  onClick={() => setFilter(key)}
+                  onClick={() => { setFilter(key); setVisibleCount(20); }}
                   className={`py-2 rounded-lg text-center transition-all ${
                     filter === key
                       ? 'bg-accent/20 text-accent ring-1 ring-accent/30'
@@ -581,7 +585,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {filteredRooms.map(room => {
+            {visibleRooms.map(room => {
               const statusDisplay = getStatusDisplay(room.matchStatus);
               const isDeleting = deleting === room.id;
 
@@ -658,6 +662,15 @@ export default function AdminPage() {
                 </div>
               );
             })}
+
+            {hasMore && (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 20)}
+                className="w-full py-3 rounded-xl font-bold text-sm bg-charcoal text-white/50 active:scale-[0.98] transition-all border border-white/10 hover:border-white/20 hover:text-white/70"
+              >
+                Load More ({filteredRooms.length - visibleCount} remaining)
+              </button>
+            )}
           </div>
         </>
       )}
