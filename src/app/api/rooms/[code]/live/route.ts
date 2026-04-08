@@ -4,6 +4,7 @@ import { getFixtureDetails, getFixtureEvents, getFixturePlayerStats, clearFixtur
 import { calculatePlayerPoints } from '@/lib/scoring';
 import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
+import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -216,54 +217,11 @@ export async function GET(
       ? updatedRoom.players.find(p => p.sessionToken === sessionToken)
       : null;
 
-    // Build global leaderboard
-    const [globalTotal, globalTopPlayers] = await Promise.all([
-      prisma.player.count({ where: { room: { fixtureId: room.fixtureId } } }),
-      prisma.player.findMany({
-        where: { room: { fixtureId: room.fixtureId } },
-        include: { picks: true },
-        orderBy: { totalPoints: 'desc' },
-        take: 5,
-      }),
-    ]);
-
-    const mapGlobalEntry = (p: typeof globalTopPlayers[0], rank: number) => ({
-      displayName: p.displayName,
-      totalPoints: p.totalPoints,
-      rank,
-      hasPicks: p.picks.length > 0,
-      isYou: currentPlayer ? p.id === currentPlayer.id : false,
-      picks: teamsLocked ? p.picks.map(pick => ({
-        footballPlayerId: pick.footballPlayerId,
-        footballPlayerName: pick.footballPlayerName,
-        teamId: pick.teamId,
-        position: pick.position,
-        slotIndex: pick.slotIndex,
-        points: pick.points,
-        pointsBreakdown: pick.pointsBreakdown,
-      })) : [],
-    });
-
-    const globalTop: ReturnType<typeof mapGlobalEntry>[] = [];
-    for (let i = 0; i < globalTopPlayers.length; i++) {
-      const rank = i === 0 ? 1 :
-        globalTopPlayers[i].totalPoints === globalTopPlayers[i - 1].totalPoints ? globalTop[i - 1].rank : i + 1;
-      globalTop.push(mapGlobalEntry(globalTopPlayers[i], rank));
-    }
-
-    let globalCurrentUser = null;
-    if (currentPlayer && !globalTopPlayers.some(p => p.id === currentPlayer.id)) {
-      const playersAbove = await prisma.player.count({
-        where: { room: { fixtureId: room.fixtureId }, totalPoints: { gt: currentPlayer.totalPoints } },
-      });
-      const fullPlayer = await prisma.player.findUnique({
-        where: { id: currentPlayer.id },
-        include: { picks: true },
-      });
-      if (fullPlayer) {
-        globalCurrentUser = mapGlobalEntry(fullPlayer, playersAbove + 1);
-      }
-    }
+    const globalLeaderboard = await buildGlobalLeaderboard(
+      room.fixtureId,
+      teamsLocked,
+      currentPlayer?.id || null,
+    );
 
     return NextResponse.json({
       match: {
@@ -281,7 +239,6 @@ export async function GET(
         totalPoints: p.totalPoints,
         captainSlot: p.captainSlot,
         hasPicks: p.picks.length > 0,
-        // Hide other players' picks before lock
         picks: teamsLocked ? p.picks.map(pick => ({
           footballPlayerId: pick.footballPlayerId,
           footballPlayerName: pick.footballPlayerName,
@@ -292,11 +249,7 @@ export async function GET(
           pointsBreakdown: pick.pointsBreakdown,
         })) : [],
       })) || [],
-      globalLeaderboard: {
-        totalPlayers: globalTotal,
-        top: globalTop,
-        currentUser: globalCurrentUser,
-      },
+      globalLeaderboard,
     });
   } catch (error) {
     console.error('Failed to fetch live data:', error);

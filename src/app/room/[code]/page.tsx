@@ -13,19 +13,21 @@ import type { RoomData, PlayerData, ApiFixtureEvent, PickSlot } from '@/types';
 import HelpButton from '@/components/HelpButton';
 import { track } from '@/lib/track';
 
-interface GlobalEntry {
-  displayName: string;
-  totalPoints: number;
+interface GlobalTeamEntry {
   rank: number;
-  hasPicks: boolean;
-  isYou: boolean;
+  totalPoints: number;
+  playerCount: number;
+  isYourTeam: boolean;
+  sampleNames: string[];
+  captainSlot: number;
   picks: PickSlot[];
 }
 
 interface GlobalLeaderboardData {
   totalPlayers: number;
-  top: GlobalEntry[];
-  currentUser: GlobalEntry | null;
+  totalTeams: number;
+  topTeams: GlobalTeamEntry[];
+  currentUserTeam: GlobalTeamEntry | null;
 }
 
 interface RoomResponse {
@@ -64,7 +66,7 @@ export default function LiveRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global'>('friends');
-  const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, top: [], currentUser: null });
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
 
   // Join form state
   const [showJoin, setShowJoin] = useState(false);
@@ -397,8 +399,9 @@ export default function LiveRoomPage() {
       ) : (
         <GlobalLeaderboard
           totalPlayers={globalLeaderboard.totalPlayers}
-          top={globalLeaderboard.top}
-          currentUser={globalLeaderboard.currentUser}
+          totalTeams={globalLeaderboard.totalTeams}
+          topTeams={globalLeaderboard.topTeams}
+          currentUserTeam={globalLeaderboard.currentUserTeam}
           homeTeamId={room.homeTeamId}
           awayTeamId={room.awayTeamId}
           homeTeamName={room.homeTeamName}

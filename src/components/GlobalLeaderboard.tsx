@@ -2,22 +2,23 @@
 
 import { useState } from 'react';
 import type { PickSlot } from '@/types';
-import { getTeamColours } from '@/lib/team-colours';
 import TeamSheet from './TeamSheet';
 
-interface GlobalEntry {
-  displayName: string;
-  totalPoints: number;
+interface TeamEntry {
   rank: number;
-  hasPicks: boolean;
-  isYou: boolean;
+  totalPoints: number;
+  playerCount: number;
+  isYourTeam: boolean;
+  sampleNames: string[];
+  captainSlot: number;
   picks: PickSlot[];
 }
 
 interface Props {
   totalPlayers: number;
-  top: GlobalEntry[];
-  currentUser: GlobalEntry | null;
+  totalTeams: number;
+  topTeams: TeamEntry[];
+  currentUserTeam: TeamEntry | null;
   homeTeamId: number;
   awayTeamId: number;
   homeTeamName: string;
@@ -26,16 +27,8 @@ interface Props {
   matchStarted: boolean;
 }
 
-function getDominantTeamId(picks: PickSlot[]): number | null {
-  if (picks.length === 0) return null;
-  const counts: Record<number, number> = {};
-  picks.forEach(p => { counts[p.teamId] = (counts[p.teamId] || 0) + 1; });
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  return Number(sorted[0][0]);
-}
-
-function EntryRow({
-  entry,
+function TeamCard({
+  team,
   homeTeamId,
   awayTeamId,
   homeTeamName,
@@ -44,7 +37,7 @@ function EntryRow({
   expanded,
   onToggle,
 }: {
-  entry: GlobalEntry;
+  team: TeamEntry;
   homeTeamId: number;
   awayTeamId: number;
   homeTeamName: string;
@@ -53,83 +46,83 @@ function EntryRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const picksVisible = teamsLocked && entry.picks.length > 0;
-  const dominantTeamId = picksVisible ? getDominantTeamId(entry.picks) : null;
-  const dominantName = dominantTeamId === homeTeamId ? homeTeamName : dominantTeamId === awayTeamId ? awayTeamName : undefined;
-  const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId, dominantName).primary : null;
+  const picksVisible = teamsLocked && team.picks.length > 0;
 
   return (
     <div className="animate-fade-in">
       <button
         onClick={() => picksVisible && onToggle()}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
-          entry.isYou ? 'ring-1 ring-accent/30' : ''
+        className={`w-full px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
+          team.isYourTeam ? 'ring-1 ring-accent/30' : ''
         } ${expanded ? 'ring-1 ring-accent/20' : 'hover:brightness-110'}`}
         style={{
-          background: entry.isYou
+          background: team.isYourTeam
             ? 'rgba(0,245,160,0.06)'
-            : dominantColour
-              ? `linear-gradient(90deg, ${dominantColour}18 0%, rgba(30,41,59,0.6) 30%)`
-              : 'rgba(30,41,59,0.6)',
+            : 'rgba(30,41,59,0.6)',
         }}
       >
-        {dominantColour && (
-          <div
-            className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
-            style={{ backgroundColor: entry.isYou ? '#00f5a0' : dominantColour }}
-          />
-        )}
-        {entry.isYou && !dominantColour && (
+        {team.isYourTeam && (
           <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl bg-accent" />
         )}
 
-        {/* Rank */}
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-          entry.rank === 1 ? 'bg-points-gold/20 text-points-gold' :
-          entry.rank === 2 ? 'bg-white/10 text-white/60' :
-          entry.rank === 3 ? 'bg-orange-500/10 text-orange-400' :
-          'bg-white/5 text-white/30'
-        }`}>
-          {entry.rank}
-        </div>
+        <div className="flex items-center gap-3">
+          {/* Rank */}
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+            team.rank === 1 ? 'bg-points-gold/20 text-points-gold' :
+            team.rank === 2 ? 'bg-white/10 text-white/60' :
+            team.rank === 3 ? 'bg-orange-500/10 text-orange-400' :
+            'bg-white/5 text-white/30'
+          }`}>
+            {team.rank}
+          </div>
 
-        {/* Name */}
-        <div className="flex-1 text-left min-w-0">
-          <span className="text-sm font-bold text-white truncate block">
-            {entry.displayName}
-            {entry.isYou && (
-              <span className="ml-1.5 text-[10px] font-medium text-accent uppercase">You</span>
-            )}
-          </span>
-          {!entry.hasPicks && (
-            <span className="text-[10px] text-white/30">Picking team...</span>
+          {/* Info */}
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-white">
+                {team.playerCount} {team.playerCount === 1 ? 'player' : 'players'}
+              </span>
+              {team.isYourTeam && (
+                <span className="text-[10px] font-medium text-accent uppercase">Your team</span>
+              )}
+            </div>
+            <span className="text-[10px] text-white/30 truncate block">
+              {team.sampleNames.join(', ')}{team.playerCount > team.sampleNames.length ? ` +${team.playerCount - team.sampleNames.length} more` : ''}
+            </span>
+          </div>
+
+          {/* Points */}
+          <div className="flex items-center gap-2">
+            <span className={`text-lg font-black ${
+              team.totalPoints > 0 ? 'text-accent' : team.totalPoints < 0 ? 'text-live-red' : 'text-white/40'
+            }`}>
+              {team.totalPoints}
+            </span>
+            <span className="text-[10px] text-white/30 font-medium">pts</span>
+          </div>
+
+          {picksVisible && (
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-white/30 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           )}
         </div>
-
-        {/* Points */}
-        <div className="flex items-center gap-2">
-          <span className={`text-lg font-black ${
-            entry.totalPoints > 0 ? 'text-accent' : entry.totalPoints < 0 ? 'text-live-red' : 'text-white/40'
-          }`}>
-            {entry.totalPoints}
-          </span>
-          <span className="text-[10px] text-white/30 font-medium">pts</span>
-        </div>
-
-        {picksVisible && (
-          <svg
-            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`text-white/30 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        )}
       </button>
 
       {expanded && picksVisible && (
         <div className="mt-1 animate-slide-up">
-          <TeamSheet picks={entry.picks} homeTeamId={homeTeamId} awayTeamId={awayTeamId} homeTeamName={homeTeamName} awayTeamName={awayTeamName} />
+          <TeamSheet
+            picks={team.picks}
+            homeTeamId={homeTeamId}
+            awayTeamId={awayTeamId}
+            homeTeamName={homeTeamName}
+            awayTeamName={awayTeamName}
+            captainSlot={team.captainSlot}
+          />
         </div>
       )}
     </div>
@@ -138,8 +131,9 @@ function EntryRow({
 
 export default function GlobalLeaderboard({
   totalPlayers,
-  top,
-  currentUser,
+  totalTeams,
+  topTeams,
+  currentUserTeam,
   homeTeamId,
   awayTeamId,
   homeTeamName,
@@ -169,10 +163,10 @@ export default function GlobalLeaderboard({
     );
   }
 
-  if (top.length === 0) {
+  if (topTeams.length === 0) {
     return (
       <div className="px-4 py-8 text-center">
-        <p className="text-white/40 text-sm">No players yet</p>
+        <p className="text-white/40 text-sm">No teams picked yet</p>
       </div>
     );
   }
@@ -180,14 +174,16 @@ export default function GlobalLeaderboard({
   return (
     <div className="px-4 py-3 space-y-2">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Top Players</h3>
-        <span className="text-[10px] font-bold text-white/25">{totalPlayers} total</span>
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Top Teams</h3>
+        <span className="text-[10px] font-bold text-white/25">
+          {totalTeams} {totalTeams === 1 ? 'team' : 'distinct teams'} · {totalPlayers} players
+        </span>
       </div>
 
-      {top.map((entry, i) => (
-        <EntryRow
+      {topTeams.map((team, i) => (
+        <TeamCard
           key={`top-${i}`}
-          entry={entry}
+          team={team}
           homeTeamId={homeTeamId}
           awayTeamId={awayTeamId}
           homeTeamName={homeTeamName}
@@ -198,16 +194,16 @@ export default function GlobalLeaderboard({
         />
       ))}
 
-      {/* Current user pinned at bottom if not in top 5 */}
-      {currentUser && (
+      {/* Current user's team pinned at bottom if not in top 3 */}
+      {currentUserTeam && (
         <>
           <div className="flex items-center gap-2 py-1 px-4">
             <div className="flex-1 border-t border-white/5" />
             <span className="text-[10px] text-white/20 font-medium">···</span>
             <div className="flex-1 border-t border-white/5" />
           </div>
-          <EntryRow
-            entry={currentUser}
+          <TeamCard
+            team={currentUserTeam}
             homeTeamId={homeTeamId}
             awayTeamId={awayTeamId}
             homeTeamName={homeTeamName}

@@ -2,62 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
+import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
 
 export const dynamic = 'force-dynamic';
-
-async function buildGlobalLeaderboard(fixtureId: number, teamsLocked: boolean, currentPlayerId: string | null) {
-  const [totalPlayers, topPlayers] = await Promise.all([
-    prisma.player.count({ where: { room: { fixtureId } } }),
-    prisma.player.findMany({
-      where: { room: { fixtureId } },
-      include: { picks: true },
-      orderBy: { totalPoints: 'desc' },
-      take: 5,
-    }),
-  ]);
-
-  const mapEntry = (p: typeof topPlayers[0], rank: number) => ({
-    displayName: p.displayName,
-    totalPoints: p.totalPoints,
-    rank,
-    hasPicks: p.picks.length > 0,
-    isYou: p.id === currentPlayerId,
-    picks: teamsLocked ? p.picks.map(pick => ({
-      footballPlayerId: pick.footballPlayerId,
-      footballPlayerName: pick.footballPlayerName,
-      teamId: pick.teamId,
-      position: pick.position,
-      slotIndex: pick.slotIndex,
-      points: pick.points,
-      pointsBreakdown: pick.pointsBreakdown,
-    })) : [],
-  });
-
-  // Assign competition ranks (ties share rank)
-  const top: ReturnType<typeof mapEntry>[] = [];
-  for (let i = 0; i < topPlayers.length; i++) {
-    const rank = i === 0 ? 1 :
-      topPlayers[i].totalPoints === topPlayers[i - 1].totalPoints ? top[i - 1].rank : i + 1;
-    top.push(mapEntry(topPlayers[i], rank));
-  }
-
-  // If current user isn't in top 5, find their position
-  let currentUser = null;
-  if (currentPlayerId && !topPlayers.some(p => p.id === currentPlayerId)) {
-    const player = await prisma.player.findUnique({
-      where: { id: currentPlayerId },
-      include: { picks: true },
-    });
-    if (player) {
-      const playersAbove = await prisma.player.count({
-        where: { room: { fixtureId }, totalPoints: { gt: player.totalPoints } },
-      });
-      currentUser = mapEntry(player, playersAbove + 1);
-    }
-  }
-
-  return { totalPlayers, top, currentUser };
-}
 
 export async function GET(
   _request: Request,
