@@ -371,7 +371,7 @@ export default function LiveRoomPage() {
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Friends ({leaderboard.length})
+            Friends
           </button>
           <button
             onClick={() => setLeaderboardView('global')}
@@ -381,7 +381,7 @@ export default function LiveRoomPage() {
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Global ({globalLeaderboard.totalPlayers})
+            Global
           </button>
         </div>
       </div>
