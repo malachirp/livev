@@ -103,13 +103,14 @@ export async function GET(request: Request) {
     // ── Deep dive (only when requested, heavier queries) ──
 
     if (deepDive) {
-      // Event-based analytics from the AnalyticsEvent table
       let hasEventTable = true;
       let eventCounts: Record<string, number> = {};
       let dailyVisitors: { date: string; count: number }[] = [];
       let pageViews: { page: string; count: number }[] = [];
       let hourlyActivity: { hour: number; count: number }[] = [];
       let conversionFunnel: { step: string; label: string; description: string; count: number }[] = [];
+      let leagueBreakdown: { leagueName: string; count: number }[] = [];
+      let entryTypes: { type: string; count: number }[] = [];
 
       try {
         // Total counts by event type
@@ -153,7 +154,6 @@ export async function GET(request: Request) {
 
         const pageCounts: Record<string, number> = {};
         for (const row of pageViewRows) {
-          // Normalise: /room/ABC123 → /room/[code], /room/ABC123/pick → /room/[code]/pick
           let p = row.page || '/';
           p = p.replace(/^\/room\/[A-Za-z0-9]+\/pick$/, '/room/[code]/pick');
           p = p.replace(/^\/room\/[A-Za-z0-9]+$/, '/room/[code]');
@@ -179,11 +179,11 @@ export async function GET(request: Request) {
 
         // Conversion funnel: unique sessions that did each action
         const funnelSteps = [
-          { event: 'page_view', step: 'visitors', label: 'Site Visitors', description: 'Unique people who visited any page' },
-          { event: 'game_created', step: 'creators', label: 'Games Created', description: 'Unique people who created a game room' },
-          { event: 'game_joined', step: 'joiners', label: 'Players Joined', description: 'Unique people who joined someone else\'s game' },
-          { event: 'team_saved', step: 'pickers', label: 'Teams Saved', description: 'Unique people who saved their team picks' },
-          { event: 'share_clicked', step: 'sharers', label: 'Shares', description: 'Unique people who tapped the share button' },
+          { event: 'page_view', step: 'visitors', label: 'Site Visitors', description: 'Unique visitors who loaded any page' },
+          { event: 'game_created', step: 'creators', label: 'Games Created', description: 'Unique visitors who created a game room' },
+          { event: 'game_joined', step: 'joiners', label: 'Players Joined', description: 'Unique visitors who joined someone else\'s game' },
+          { event: 'team_saved', step: 'pickers', label: 'Teams Saved', description: 'Unique visitors who saved their team picks' },
+          { event: 'share_clicked', step: 'sharers', label: 'Shares', description: 'Unique visitors who tapped the share button' },
         ];
 
         for (const s of funnelSteps) {
@@ -193,13 +193,47 @@ export async function GET(request: Request) {
           });
           conversionFunnel.push({ step: s.step, label: s.label, description: s.description, count: count.length });
         }
+
+        // League breakdown: games created per league (from metadata)
+        const leagueRows = await prisma.$queryRawUnsafe<{ league_name: string; cnt: bigint }[]>(
+          `SELECT metadata->>'leagueName' as league_name, COUNT(*) as cnt
+           FROM "AnalyticsEvent"
+           WHERE event = 'game_created' AND metadata->>'leagueName' IS NOT NULL
+           GROUP BY league_name
+           ORDER BY cnt DESC`
+        );
+        leagueBreakdown = leagueRows.map(r => ({ leagueName: r.league_name, count: Number(r.cnt) }));
+
+        // Also get league breakdown from the Room table (for games created before tracking was added)
+        if (leagueBreakdown.length === 0) {
+          const roomLeagues = await prisma.room.groupBy({
+            by: ['leagueId'],
+            _count: { id: true },
+            orderBy: { _count: { id: 'desc' } },
+          });
+          leagueBreakdown = roomLeagues.map(r => ({
+            leagueName: `League ${r.leagueId}`,
+            count: r._count.id,
+          }));
+        }
+
+        // Entry type breakdown: direct (homepage) vs shared_link (room pages)
+        const entryTypeRows = await prisma.$queryRawUnsafe<{ entry_type: string; cnt: bigint }[]>(
+          `SELECT metadata->>'entry_type' as entry_type, COUNT(DISTINCT "sessionId") as cnt
+           FROM "AnalyticsEvent"
+           WHERE event = 'page_view' AND metadata->>'entry_type' IS NOT NULL
+           GROUP BY entry_type
+           ORDER BY cnt DESC`
+        );
+        entryTypes = entryTypeRows.map(r => ({ type: r.entry_type, count: Number(r.cnt) }));
+
       } catch {
-        // AnalyticsEvent table might not exist yet (pre-migration)
         hasEventTable = false;
       }
 
       // Return rate: sessions that visited on more than one distinct day
       let returnRate = 0;
+      let uniqueVisitors = 0;
       if (hasEventTable) {
         try {
           const returnRows = await prisma.$queryRawUnsafe<{ returning: bigint; total: bigint }[]>(
@@ -215,6 +249,7 @@ export async function GET(request: Request) {
           );
           if (returnRows.length > 0 && Number(returnRows[0].total) > 0) {
             returnRate = Math.round((Number(returnRows[0].returning) / Number(returnRows[0].total)) * 100);
+            uniqueVisitors = Number(returnRows[0].total);
           }
         } catch {
           // Ignore if query fails
@@ -229,6 +264,9 @@ export async function GET(request: Request) {
         hourlyActivity,
         conversionFunnel,
         returnRate,
+        uniqueVisitors,
+        leagueBreakdown,
+        entryTypes,
       };
     }
 

@@ -86,7 +86,7 @@ export default function LiveRoomPage() {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const finishedSinceRef = useRef<number | null>(null);
 
-  useEffect(() => { track('page_view'); }, []);
+  useEffect(() => { track('page_view', { entry_type: 'shared_link' }); }, []);
 
   // Initial load
   useEffect(() => {
@@ -277,7 +277,7 @@ export default function LiveRoomPage() {
       <header className="sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm">
           <div className="flex items-center gap-2">
-            <a href="/" className="flex items-baseline">
+            <a href="/" onClick={() => track('logo_clicked')} className="flex items-baseline">
               <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
               <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
             </a>

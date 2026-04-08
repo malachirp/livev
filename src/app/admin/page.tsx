@@ -42,6 +42,9 @@ interface DeepDive {
   hourlyActivity: { hour: number; count: number }[];
   conversionFunnel: { step: string; label: string; description: string; count: number }[];
   returnRate: number;
+  uniqueVisitors: number;
+  leagueBreakdown: { leagueName: string; count: number }[];
+  entryTypes: { type: string; count: number }[];
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -675,19 +678,19 @@ export default function AdminPage() {
                   <StatCard
                     value={analytics.summary.totalGames}
                     label="Total Games"
-                    description="All game rooms created since launch"
+                    description="Total game rooms created (not unique creators)"
                     accent
                   />
                   <StatCard
                     value={analytics.summary.totalPlayers}
-                    label="Total Players"
-                    description="All users who have joined a game"
+                    label="Total Entries"
+                    description="Total player entries across all games (one person joining 3 games = 3 entries)"
                     accent
                   />
                   <StatCard
                     value={analytics.summary.avgPlayersPerGame}
                     label="Avg Group Size"
-                    description="Average number of players per game room"
+                    description="Total player entries / total games"
                   />
                   <StatCard
                     value={analytics.summary.gamesThisWeek}
@@ -738,7 +741,7 @@ export default function AdminPage() {
                 <div className="space-y-5 pt-2 border-t border-white/10">
                   <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Deep Dive Analytics</h3>
                   <p className="text-[10px] text-white/30 -mt-3">
-                    User behaviour data collected via lightweight event tracking. Data starts accumulating after deploy.
+                    Behaviour data from lightweight event tracking. &quot;Unique visitor&quot; = one browser with localStorage (persists across tabs &amp; sessions, but not across devices or incognito).
                   </p>
 
                   {loadingDeepDive ? (
@@ -754,42 +757,106 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Summary event counts */}
+                      {/* ── 1. Visitor overview ── */}
                       <div>
-                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Total Events Tracked</h4>
-                        <div className="grid grid-cols-3 gap-2">
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Visitor Overview</h4>
+                        <div className="grid grid-cols-2 gap-2">
                           <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
-                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.page_view || 0).toLocaleString()}</div>
-                            <div className="text-[9px] font-bold text-white/30 uppercase">Page Views</div>
-                            <div className="text-[8px] text-white/20">Total page loads across all pages</div>
-                          </div>
-                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
-                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.share_clicked || 0).toLocaleString()}</div>
-                            <div className="text-[9px] font-bold text-white/30 uppercase">Shares</div>
-                            <div className="text-[8px] text-white/20">Times the share button was tapped</div>
+                            <div className="text-lg font-black text-accent">{(deepDive.uniqueVisitors || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Unique Visitors</div>
+                            <div className="text-[8px] text-white/20">Distinct browser IDs (localStorage)</div>
                           </div>
                           <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
                             <div className="text-lg font-black text-accent">{deepDive.returnRate}%</div>
                             <div className="text-[9px] font-bold text-white/30 uppercase">Return Rate</div>
-                            <div className="text-[8px] text-white/20">% of visitors who came back on a different day</div>
+                            <div className="text-[8px] text-white/20">Visitors who came back on a different day</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Daily unique visitors */}
+                      {/* ── 2. Event counts ── */}
+                      <div>
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Event Counts (All Time)</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.page_view || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Page Views</div>
+                            <div className="text-[8px] text-white/20">Total page loads</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.share_clicked || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Shares</div>
+                            <div className="text-[8px] text-white/20">Share button taps</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.help_opened || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Help Opens</div>
+                            <div className="text-[8px] text-white/20">? button taps</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.logo_clicked || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Logo Clicks</div>
+                            <div className="text-[8px] text-white/20">LIVE V logo → home</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.game_created || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Games Created</div>
+                            <div className="text-[8px] text-white/20">Total (not unique)</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.team_saved || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Teams Saved</div>
+                            <div className="text-[8px] text-white/20">Includes edits</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── 3. Entry type: direct vs shared link ── */}
+                      {deepDive.entryTypes.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">How Visitors Arrive (Unique Visitors)</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {deepDive.entryTypes.map(e => (
+                              <div key={e.type} className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                                <div className="text-lg font-black text-white">{e.count.toLocaleString()}</div>
+                                <div className="text-[9px] font-bold text-white/30 uppercase">
+                                  {e.type === 'direct' ? 'Direct (Homepage)' : e.type === 'shared_link' ? 'Shared Link' : e.type}
+                                </div>
+                                <div className="text-[8px] text-white/20">
+                                  {e.type === 'direct' ? 'Landed on homepage first' : 'Opened a game room link'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── 4. Daily unique visitors ── */}
                       <BarChart
                         data={deepDive.dailyVisitors}
                         color="#a78bfa"
                         label="Daily Unique Visitors (Last 30 Days)"
                       />
 
-                      {/* Conversion funnel */}
+                      {/* ── 5. Conversion funnel ── */}
                       <FunnelChart
                         data={deepDive.conversionFunnel}
-                        label="Conversion Funnel (All Time, Unique People)"
+                        label="Conversion Funnel (All Time, Unique Visitors)"
                       />
 
-                      {/* Page views breakdown */}
+                      {/* ── 6. Games per league ── */}
+                      {deepDive.leagueBreakdown.length > 0 && (
+                        <HorizontalBar
+                          data={deepDive.leagueBreakdown.map(l => ({
+                            label: l.leagueName,
+                            value: l.count,
+                          }))}
+                          color="#f59e0b"
+                          label="Games Created by League"
+                        />
+                      )}
+
+                      {/* ── 7. Page views breakdown ── */}
                       <HorizontalBar
                         data={deepDive.pageViews.map(p => ({
                           label: PAGE_LABELS[p.page] || p.page,
@@ -800,11 +867,23 @@ export default function AdminPage() {
                         label="Page Views by Page"
                       />
 
-                      {/* Hourly activity */}
+                      {/* ── 8. Hourly activity ── */}
                       <HourlyChart
                         data={deepDive.hourlyActivity}
                         label="Activity by Hour of Day (When Users Are Online)"
                       />
+
+                      {/* ── Definitions ── */}
+                      <div>
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Definitions</h4>
+                        <div className="bg-charcoal/40 rounded-xl p-4 space-y-2 text-[10px] text-white/30 leading-relaxed">
+                          <p><span className="text-white/50 font-bold">Unique Visitor:</span> Identified by a random ID stored in the browser&apos;s localStorage. Persists across tabs, page reloads, and browser restarts. However, a person using incognito mode, a different browser, or a different device will be counted as a separate visitor. There is no login system.</p>
+                          <p><span className="text-white/50 font-bold">Return Rate:</span> % of unique visitors who visited on more than one calendar day.</p>
+                          <p><span className="text-white/50 font-bold">Total Entries (headline):</span> Total player rows in the database — one person joining 3 separate games counts as 3 entries. Not deduplicated.</p>
+                          <p><span className="text-white/50 font-bold">Avg Group Size (headline):</span> Total player entries divided by total games. Updates as new games and players are added.</p>
+                          <p><span className="text-white/50 font-bold">Direct vs Shared Link:</span> &quot;Direct&quot; means they first loaded the homepage. &quot;Shared Link&quot; means they first loaded a /room/ page (from a friend&apos;s link).</p>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>

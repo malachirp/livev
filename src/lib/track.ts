@@ -5,10 +5,13 @@
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
-  let id = sessionStorage.getItem('livev_sid');
+  // Use localStorage so the same visitor ID persists across tabs and sessions.
+  // This gives us a much better approximation of "unique visitor" than sessionStorage,
+  // which resets every time a tab is closed.
+  let id = localStorage.getItem('livev_vid');
   if (!id) {
     id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    sessionStorage.setItem('livev_sid', id);
+    localStorage.setItem('livev_vid', id);
   }
   return id;
 }

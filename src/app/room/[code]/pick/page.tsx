@@ -27,7 +27,7 @@ export default function PickTeamPage() {
   const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
   const fixtureIdRef = useRef<number | null>(null);
 
-  useEffect(() => { track('page_view'); }, []);
+  useEffect(() => { track('page_view', { entry_type: 'shared_link' }); }, []);
 
   const squadsUrlRef = useRef<string | null>(null);
 
@@ -166,7 +166,7 @@ export default function PickTeamPage() {
     return (
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
-          <a href="/" className="flex items-baseline">
+          <a href="/" onClick={() => track('logo_clicked')} className="flex items-baseline">
             <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
             <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
           </a>
@@ -185,7 +185,7 @@ export default function PickTeamPage() {
     return (
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between px-4 py-3 bg-navy/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/5">
-          <a href="/" className="flex items-baseline">
+          <a href="/" onClick={() => track('logo_clicked')} className="flex items-baseline">
             <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
             <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
           </a>

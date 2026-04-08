@@ -56,7 +56,7 @@ export default function CreateGamePage() {
     fixtureTranslateY.current = 0;
   };
 
-  useEffect(() => { track('page_view'); }, []);
+  useEffect(() => { track('page_view', { entry_type: 'direct' }); }, []);
 
   useEffect(() => {
     fetch('/api/fixtures')
@@ -120,7 +120,7 @@ export default function CreateGamePage() {
       }
 
       const { code } = await res.json();
-      track('game_created', { code });
+      track('game_created', { code, leagueId: selectedFixture.league.id, leagueName: selectedFixture.league.name });
       router.push(`/room/${code}/pick`);
     } catch (err: any) {
       setError(err.message);

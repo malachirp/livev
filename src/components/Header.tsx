@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import HelpButton from './HelpButton';
 import ShareButton from './ShareButton';
+import { track } from '@/lib/track';
 
 export default function Header({ showBack, backHref }: { showBack?: boolean; backHref?: string }) {
   return (
@@ -18,7 +19,7 @@ export default function Header({ showBack, backHref }: { showBack?: boolean; bac
             </svg>
           </Link>
         )}
-        <Link href="/" className="flex items-baseline">
+        <Link href="/" onClick={() => track('logo_clicked')} className="flex items-baseline">
           <span className="text-2xl font-black tracking-tight text-white">LIVE</span>
           <span className="text-2xl font-black tracking-tight text-accent italic">V</span>
         </Link>
