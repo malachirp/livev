@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { LEAGUES } from '@/lib/api-football';
 
 export const dynamic = 'force-dynamic';
 
@@ -206,13 +207,14 @@ export async function GET(request: Request) {
 
         // Also get league breakdown from the Room table (for games created before tracking was added)
         if (leagueBreakdown.length === 0) {
+          const leagueMap = Object.fromEntries(LEAGUES.map(l => [l.id, l.name]));
           const roomLeagues = await prisma.room.groupBy({
             by: ['leagueId'],
             _count: { id: true },
             orderBy: { _count: { id: 'desc' } },
           });
           leagueBreakdown = roomLeagues.map(r => ({
-            leagueName: `League ${r.leagueId}`,
+            leagueName: leagueMap[r.leagueId] || `Unknown (${r.leagueId})`,
             count: r._count.id,
           }));
         }
