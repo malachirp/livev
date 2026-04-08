@@ -27,6 +27,23 @@ interface Props {
   matchStarted: boolean;
 }
 
+/** Get a short surname from "First Last" or just the full name if single word */
+function surname(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+}
+
+/** Build a compact lineup string like "Salah (C), Haaland, Saka, Palmer, Foden" */
+function lineupLabel(picks: PickSlot[], captainSlot: number): string {
+  if (picks.length === 0) return 'Hidden';
+  const captain = picks.find(p => p.slotIndex === captainSlot);
+  const others = picks.filter(p => p.slotIndex !== captainSlot);
+  const parts: string[] = [];
+  if (captain) parts.push(`${surname(captain.footballPlayerName)} (C)`);
+  others.forEach(p => parts.push(surname(p.footballPlayerName)));
+  return parts.join(', ');
+}
+
 function TeamCard({
   team,
   homeTeamId,
@@ -76,23 +93,31 @@ function TeamCard({
             {team.rank}
           </div>
 
-          {/* Info */}
+          {/* Lineup as identity */}
           <div className="flex-1 text-left min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-white">
-                {team.playerCount} {team.playerCount === 1 ? 'player' : 'players'}
-              </span>
+            <span className="text-sm font-bold text-white truncate block">
+              {picksVisible ? lineupLabel(team.picks, team.captainSlot) : 'Teams hidden'}
+            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
               {team.isYourTeam && (
-                <span className="text-[10px] font-medium text-accent uppercase">Your team</span>
+                <span className="text-[10px] font-bold text-accent">Your team</span>
+              )}
+              {team.isYourTeam && team.playerCount > 1 && (
+                <span className="text-[10px] text-white/20">·</span>
+              )}
+              {team.playerCount > 1 && (
+                <span className="text-[10px] text-white/30">
+                  picked by {team.playerCount}
+                </span>
+              )}
+              {!team.isYourTeam && team.playerCount === 1 && (
+                <span className="text-[10px] text-white/30">1 player</span>
               )}
             </div>
-            <span className="text-[10px] text-white/30 truncate block">
-              {team.sampleNames.join(', ')}{team.playerCount > team.sampleNames.length ? ` +${team.playerCount - team.sampleNames.length} more` : ''}
-            </span>
           </div>
 
           {/* Points */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className={`text-lg font-black ${
               team.totalPoints > 0 ? 'text-accent' : team.totalPoints < 0 ? 'text-live-red' : 'text-white/40'
             }`}>
@@ -194,7 +219,7 @@ export default function GlobalLeaderboard({
         />
       ))}
 
-      {/* Current user's team pinned at bottom if not in top 3 */}
+      {/* Current user's team pinned at bottom if not in top 5 */}
       {currentUserTeam && (
         <>
           <div className="flex items-center gap-2 py-1 px-4">

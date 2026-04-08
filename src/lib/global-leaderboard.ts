@@ -82,9 +82,9 @@ export async function buildGlobalLeaderboard(fixtureId: number, teamsLocked: boo
     rankedTeams.push({ ...sorted[i], rank });
   }
 
-  const topTeams = rankedTeams.slice(0, 3);
+  const topTeams = rankedTeams.slice(0, 5);
 
-  // Current user's team if not in top 3
+  // Current user's team if not in top 5
   let currentUserTeam = null;
   if (currentUserKey && !topTeams.some(t => t.key === currentUserKey)) {
     const team = rankedTeams.find(t => t.key === currentUserKey);
