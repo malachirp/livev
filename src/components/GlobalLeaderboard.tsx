@@ -27,24 +27,41 @@ interface Props {
   matchStarted: boolean;
 }
 
-/** Get a short surname from "First Last" or just the full name if single word */
-function surname(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+/** Build the names display: "You, Matt +12 others" or "Sarah, James" etc */
+function namesLabel(team: TeamEntry): { primary: string; suffix: string | null } {
+  const names = [...team.sampleNames];
+  const remaining = team.playerCount - names.length;
+
+  if (team.isYourTeam) {
+    // Put "You" first, show 1 other name max
+    const otherName = names[0] || null;
+    const othersCount = team.playerCount - 1; // everyone except "You"
+    if (othersCount === 0) {
+      return { primary: 'You', suffix: null };
+    } else if (othersCount === 1 && otherName) {
+      return { primary: `You, ${otherName}`, suffix: null };
+    } else if (otherName) {
+      return { primary: `You, ${otherName}`, suffix: `+${othersCount - 1} more` };
+    } else {
+      return { primary: 'You', suffix: `+${othersCount} more` };
+    }
+  }
+
+  // Not your team — show up to 2 names
+  if (names.length === 0) {
+    return { primary: 'Anonymous', suffix: null };
+  } else if (team.playerCount === 1) {
+    return { primary: names[0], suffix: null };
+  } else if (names.length >= 2) {
+    const shown = names.slice(0, 2).join(', ');
+    const extra = team.playerCount - 2;
+    return { primary: shown, suffix: extra > 0 ? `+${extra} more` : null };
+  } else {
+    return { primary: names[0], suffix: remaining > 0 ? `+${remaining} more` : null };
+  }
 }
 
-/** Build a compact lineup string like "Salah (C), Haaland, Saka, Palmer, Foden" */
-function lineupLabel(picks: PickSlot[], captainSlot: number): string {
-  if (picks.length === 0) return 'Hidden';
-  const captain = picks.find(p => p.slotIndex === captainSlot);
-  const others = picks.filter(p => p.slotIndex !== captainSlot);
-  const parts: string[] = [];
-  if (captain) parts.push(`${surname(captain.footballPlayerName)} (C)`);
-  others.forEach(p => parts.push(surname(p.footballPlayerName)));
-  return parts.join(', ');
-}
-
-function TeamCard({
+function RankRow({
   team,
   homeTeamId,
   awayTeamId,
@@ -64,6 +81,7 @@ function TeamCard({
   onToggle: () => void;
 }) {
   const picksVisible = teamsLocked && team.picks.length > 0;
+  const { primary, suffix } = namesLabel(team);
 
   return (
     <div className="animate-fade-in">
@@ -93,25 +111,16 @@ function TeamCard({
             {team.rank}
           </div>
 
-          {/* Lineup as identity */}
+          {/* Names */}
           <div className="flex-1 text-left min-w-0">
-            <span className="text-sm font-bold text-white truncate block">
-              {picksVisible ? lineupLabel(team.picks, team.captainSlot) : 'Teams hidden'}
-            </span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              {team.isYourTeam && (
-                <span className="text-[10px] font-bold text-accent">Your team</span>
-              )}
-              {team.isYourTeam && team.playerCount > 1 && (
-                <span className="text-[10px] text-white/20">·</span>
-              )}
-              {team.playerCount > 1 && (
-                <span className="text-[10px] text-white/30">
-                  picked by {team.playerCount}
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-white truncate">
+                {primary}
+              </span>
+              {suffix && (
+                <span className="text-[10px] text-white/30 font-medium whitespace-nowrap">
+                  {suffix}
                 </span>
-              )}
-              {!team.isYourTeam && team.playerCount === 1 && (
-                <span className="text-[10px] text-white/30">1 player</span>
               )}
             </div>
           </div>
@@ -199,14 +208,14 @@ export default function GlobalLeaderboard({
   return (
     <div className="px-4 py-3 space-y-2">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Top Teams</h3>
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Leaderboard</h3>
         <span className="text-[10px] font-bold text-white/25">
-          {totalTeams} {totalTeams === 1 ? 'team' : 'distinct teams'} · {totalPlayers} players
+          {totalPlayers} players
         </span>
       </div>
 
       {topTeams.map((team, i) => (
-        <TeamCard
+        <RankRow
           key={`top-${i}`}
           team={team}
           homeTeamId={homeTeamId}
@@ -219,7 +228,7 @@ export default function GlobalLeaderboard({
         />
       ))}
 
-      {/* Current user's team pinned at bottom if not in top 5 */}
+      {/* Current user's position pinned at bottom if not in top 5 */}
       {currentUserTeam && (
         <>
           <div className="flex items-center gap-2 py-1 px-4">
@@ -227,7 +236,7 @@ export default function GlobalLeaderboard({
             <span className="text-[10px] text-white/20 font-medium">···</span>
             <div className="flex-1 border-t border-white/5" />
           </div>
-          <TeamCard
+          <RankRow
             team={currentUserTeam}
             homeTeamId={homeTeamId}
             awayTeamId={awayTeamId}

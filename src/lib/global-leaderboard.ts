@@ -47,14 +47,15 @@ export async function buildGlobalLeaderboard(fixtureId: number, teamsLocked: boo
     if (existing) {
       existing.playerCount++;
       if (isYou) existing.isYourTeam = true;
-      if (existing.sampleNames.length < 3) existing.sampleNames.push(p.displayName);
+      // Don't include current user in sampleNames — frontend shows "You" separately
+      if (!isYou && existing.sampleNames.length < 3) existing.sampleNames.push(p.displayName);
     } else {
       groups.set(key, {
         key,
         totalPoints: p.totalPoints,
         playerCount: 1,
         isYourTeam: isYou,
-        sampleNames: [p.displayName],
+        sampleNames: isYou ? [] : [p.displayName],
         captainSlot: p.captainSlot,
         picks: teamsLocked ? p.picks.map(pick => ({
           footballPlayerId: pick.footballPlayerId,
