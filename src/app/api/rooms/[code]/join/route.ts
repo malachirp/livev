@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateSessionToken, getSessionToken, getSessionMap } from '@/lib/utils';
+import { checkDisplayName } from '@/lib/name-filter';
 import { cookies } from 'next/headers';
 
 export async function POST(
@@ -15,8 +16,9 @@ export async function POST(
       return NextResponse.json({ error: 'Display name is required' }, { status: 400 });
     }
 
-    if (displayName.trim().length > 20) {
-      return NextResponse.json({ error: 'Display name must be 20 characters or less' }, { status: 400 });
+    const nameError = checkDisplayName(displayName);
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
     }
 
     const room = await prisma.room.findUnique({

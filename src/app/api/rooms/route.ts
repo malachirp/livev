@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, generateSessionToken, getSessionMap } from '@/lib/utils';
+import { checkDisplayName } from '@/lib/name-filter';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
@@ -12,8 +13,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (typeof displayName !== 'string' || displayName.trim().length === 0 || displayName.trim().length > 20) {
-      return NextResponse.json({ error: 'Display name must be 1-20 characters' }, { status: 400 });
+    if (typeof displayName !== 'string' || displayName.trim().length === 0) {
+      return NextResponse.json({ error: 'Display name is required' }, { status: 400 });
+    }
+
+    const nameError = checkDisplayName(displayName);
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
     }
 
     if (!matchDate || isNaN(new Date(matchDate).getTime())) {
