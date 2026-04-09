@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import HomeButton from '@/components/HomeButton';
 
 const DEFAULT_ADMIN_PASSWORD = 'admin';
 
@@ -505,12 +506,15 @@ export default function AdminPage() {
             </a>
             <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-1 rounded">ADMIN</span>
           </div>
-          <button
-            onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); }}
-            className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); }}
+              className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
+            >
+              Refresh
+            </button>
+            <HomeButton />
+          </div>
         </div>
         {/* Tabs */}
         <div className="flex px-4 gap-1 pb-2">
