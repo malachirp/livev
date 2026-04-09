@@ -817,11 +817,6 @@ export default function AdminPage() {
                             <div className="text-[8px] text-white/20">Home button taps</div>
                           </div>
                           <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
-                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.game_created || 0).toLocaleString()}</div>
-                            <div className="text-[9px] font-bold text-white/30 uppercase">Games Created</div>
-                            <div className="text-[8px] text-white/20">Total (not unique)</div>
-                          </div>
-                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
                             <div className="text-lg font-black text-white">{(deepDive.eventCounts.team_saved || 0).toLocaleString()}</div>
                             <div className="text-[9px] font-bold text-white/30 uppercase">Teams Saved</div>
                             <div className="text-[8px] text-white/20">Includes edits</div>
