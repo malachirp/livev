@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import PitchPicker from '@/components/PitchPicker';
 import ShareButton from '@/components/ShareButton';
 import HelpButton from '@/components/HelpButton';
+import HomeButton from '@/components/HomeButton';
 import type { NormalizedPlayer, PickData, RoomData } from '@/types';
 import { track } from '@/lib/track';
 
@@ -213,6 +214,7 @@ export default function PickTeamPage() {
         <div className="flex items-center gap-2">
           <ShareButton roomCode={code} matchTitle={room ? `${room.homeTeamName} vs ${room.awayTeamName}` : undefined} />
           <HelpButton />
+          <HomeButton />
         </div>
       </header>
 
