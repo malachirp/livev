@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import HomeButton from '@/components/HomeButton';
 
 const DEFAULT_ADMIN_PASSWORD = 'admin';
 
@@ -506,15 +505,12 @@ export default function AdminPage() {
             </a>
             <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-1 rounded">ADMIN</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); }}
-              className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
-            >
-              Refresh
-            </button>
-            <HomeButton />
-          </div>
+          <button
+            onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); }}
+            className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
+          >
+            Refresh
+          </button>
         </div>
         {/* Tabs */}
         <div className="flex px-4 gap-1 pb-2">
@@ -814,6 +810,11 @@ export default function AdminPage() {
                             <div className="text-lg font-black text-white">{(deepDive.eventCounts.logo_clicked || 0).toLocaleString()}</div>
                             <div className="text-[9px] font-bold text-white/30 uppercase">Logo Clicks</div>
                             <div className="text-[8px] text-white/20">LIVE V logo → home</div>
+                          </div>
+                          <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
+                            <div className="text-lg font-black text-white">{(deepDive.eventCounts.home_button_clicked || 0).toLocaleString()}</div>
+                            <div className="text-[9px] font-bold text-white/30 uppercase">Home Clicks</div>
+                            <div className="text-[8px] text-white/20">Home button taps</div>
                           </div>
                           <div className="bg-charcoal/60 rounded-lg p-2.5 border border-white/5">
                             <div className="text-lg font-black text-white">{(deepDive.eventCounts.game_created || 0).toLocaleString()}</div>
