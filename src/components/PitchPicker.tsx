@@ -172,7 +172,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
             <span className="text-accent/50 font-bold">S</span> - starter, <span className="text-white/40 font-bold">B</span> - bench
           </p>
         ) : (
-          <p>Lineups not yet released</p>
+          <p>Lineups not available</p>
         )}
       </div>
 
