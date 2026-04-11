@@ -68,8 +68,18 @@ const fixtureDetailsCache = new Map<number, CacheEntry<ApiFixture>>();
 const fixtureEventsCache = new Map<number, CacheEntry<ApiFixtureEvent[]>>();
 const fixturePlayerStatsCache = new Map<number, CacheEntry<ApiFixturePlayersResponse[]>>();
 
+// Player season stats cache: keyed by "teamId-leagueId-season"
+// Stores a map of playerId -> { appearances, goals, assists }
+export interface PlayerSeasonStats {
+  appearances: number;
+  goals: number;
+  assists: number;
+}
+const playerStatsCache = new Map<string, CacheEntry<Map<number, PlayerSeasonStats>>>();
+
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const PLAYER_STATS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — season stats change slowly
 const LINEUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (short so we pick up lineups when released)
 const FIXTURE_DETAILS_CACHE_TTL = 55 * 1000; // 55 seconds — aligned with 1-min client polling
 const FIXTURE_EVENTS_CACHE_TTL = 55 * 1000; // 55 seconds
@@ -281,4 +291,156 @@ export async function getFixtureLineups(fixtureId: number): Promise<ApiLineupRes
     console.error(`[API-Football] Failed to fetch lineups for fixture ${fixtureId}:`, err);
     return null;
   }
+}
+
+// ── Player season stats (appearances, goals, assists) ──
+
+interface ApiPlayerStatsResponse {
+  player: { id: number; name: string };
+  statistics: Array<{
+    team: { id: number };
+    league: { id: number; season: number };
+    games: { appearences: number | null; minutes: number | null }; // API typo: "appearences"
+    goals: { total: number | null; assists: number | null };
+  }>;
+}
+
+/**
+ * Fetch season stats for all players in a team for a given league+season.
+ * Handles pagination (API returns 20 per page). Returns a Map of playerId -> stats.
+ */
+export async function getTeamPlayerStats(
+  teamId: number,
+  leagueId: number,
+  season: number,
+): Promise<Map<number, PlayerSeasonStats>> {
+  const cacheKey = `${teamId}-${leagueId}-${season}`;
+  const cached = getCached(playerStatsCache, cacheKey);
+  if (cached) {
+    console.log(`[API-Football] Cache hit for player stats: team=${teamId} league=${leagueId}`);
+    return cached;
+  }
+
+  const statsMap = new Map<number, PlayerSeasonStats>();
+
+  try {
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const url = new URL(`${API_BASE}/players`);
+      url.searchParams.set('team', String(teamId));
+      url.searchParams.set('league', String(leagueId));
+      url.searchParams.set('season', String(season));
+      url.searchParams.set('page', String(page));
+
+      console.log(`[API-Football] Fetching player stats: team=${teamId} league=${leagueId} page=${page}`);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+
+      try {
+        const res = await fetch(url.toString(), {
+          headers: { 'x-apisports-key': getApiKey() },
+          signal: controller.signal,
+          next: { revalidate: 0 },
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          console.error(`[API-Football] Player stats error: ${res.status}`);
+          break;
+        }
+
+        const data = await res.json();
+        const results: ApiPlayerStatsResponse[] = data.response || [];
+        const paging = data.paging || { current: 1, total: 1 };
+
+        for (const entry of results) {
+          if (entry.statistics && entry.statistics.length > 0) {
+            const stat = entry.statistics[0];
+            statsMap.set(entry.player.id, {
+              appearances: stat.games.appearences ?? 0,
+              goals: stat.goals.total ?? 0,
+              assists: stat.goals.assists ?? 0,
+            });
+          }
+        }
+
+        hasMore = paging.current < paging.total;
+        page++;
+
+        // Rate-limit: delay between pages
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      } catch (err) {
+        clearTimeout(timeout);
+        console.error(`[API-Football] Player stats page ${page} failed:`, err);
+        break;
+      }
+    }
+  } catch (err) {
+    console.error(`[API-Football] Failed to fetch player stats for team ${teamId}:`, err);
+  }
+
+  playerStatsCache.set(cacheKey, { data: statsMap, expiresAt: Date.now() + PLAYER_STATS_CACHE_TTL });
+  return statsMap;
+}
+
+// ── Background pre-fetch for player season stats ──
+
+let prefetchRunning = false;
+
+/**
+ * Pre-fetch player season stats for all teams in the given fixtures.
+ * Runs in the background with delays between API calls to avoid flooding.
+ * Safe to call multiple times — skips if already running or data is cached.
+ */
+export function prefetchPlayerStats(fixtures: ApiFixture[]) {
+  if (prefetchRunning) return;
+
+  // Collect unique team+league+season combos
+  const toFetch: { teamId: number; leagueId: number; season: number }[] = [];
+  const seen = new Set<string>();
+
+  for (const f of fixtures) {
+    const league = LEAGUES.find(l => l.id === f.league.id);
+    if (!league) continue;
+
+    for (const teamId of [f.teams.home.id, f.teams.away.id]) {
+      const key = `${teamId}-${league.id}-${league.season}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      // Skip if already cached
+      const cached = getCached(playerStatsCache, key);
+      if (cached) continue;
+
+      toFetch.push({ teamId, leagueId: league.id, season: league.season });
+    }
+  }
+
+  if (toFetch.length === 0) return;
+
+  prefetchRunning = true;
+  console.log(`[API-Football] Background prefetch: ${toFetch.length} team stats to fetch`);
+
+  // Run in background — sequential with delays
+  (async () => {
+    for (let i = 0; i < toFetch.length; i++) {
+      const { teamId, leagueId, season } = toFetch[i];
+      try {
+        await getTeamPlayerStats(teamId, leagueId, season);
+      } catch (err) {
+        console.error(`[API-Football] Prefetch failed for team ${teamId}:`, err);
+      }
+      // 2 second delay between teams
+      if (i < toFetch.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    prefetchRunning = false;
+    console.log(`[API-Football] Background prefetch complete`);
+  })();
 }

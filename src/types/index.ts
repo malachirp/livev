@@ -196,6 +196,9 @@ export interface NormalizedPlayer {
   teamName: string;
   teamLogo: string;
   lineupStatus?: 'starter' | 'bench' | null;
+  seasonAppearances?: number | null;
+  seasonGoals?: number | null;
+  seasonAssists?: number | null;
 }
 
 export interface PickData {

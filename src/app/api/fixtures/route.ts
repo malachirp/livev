@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllUpcomingFixtures, LEAGUES } from '@/lib/api-football';
+import { getAllUpcomingFixtures, LEAGUES, prefetchPlayerStats } from '@/lib/api-football';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,10 @@ export async function GET() {
 
     // Determine which leagues actually have fixtures
     const availableLeagueIds = Array.from(new Set(fixtures.map(f => f.league.id)));
+
+    // Background pre-fetch player season stats for all teams in the window
+    // Non-blocking — fires and forgets, data warms into cache for when pickers open
+    prefetchPlayerStats(allFixtures);
 
     return NextResponse.json({
       fixtures,

@@ -91,7 +91,7 @@ export default function PickTeamPage() {
         }
 
         // Build squad URL with room data to avoid an extra API call on the server
-        const squadsUrl = `/api/squads/${roomData.room.fixtureId}?homeTeamId=${roomData.room.homeTeamId}&awayTeamId=${roomData.room.awayTeamId}&matchDate=${encodeURIComponent(roomData.room.matchDate)}`;
+        const squadsUrl = `/api/squads/${roomData.room.fixtureId}?homeTeamId=${roomData.room.homeTeamId}&awayTeamId=${roomData.room.awayTeamId}&matchDate=${encodeURIComponent(roomData.room.matchDate)}&leagueId=${roomData.room.leagueId}`;
         squadsUrlRef.current = squadsUrl;
 
         const squadsRes = await fetch(squadsUrl);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSquad, getFixtureDetails, getFixtureLineups } from '@/lib/api-football';
+import { getSquad, getFixtureDetails, getFixtureLineups, getTeamPlayerStats, LEAGUES } from '@/lib/api-football';
 import { normalizePosition, normalizeLineupPosition, sanitizePlayerName } from '@/lib/utils';
 import type { NormalizedPlayer } from '@/types';
 
@@ -20,9 +20,12 @@ export async function GET(
     const awayTeamIdParam = url.searchParams.get('awayTeamId');
     const matchDateParam = url.searchParams.get('matchDate');
 
+    const leagueIdParam = url.searchParams.get('leagueId');
+
     let homeTeamId: number;
     let awayTeamId: number;
     let kickoff: number;
+    let leagueId: number | null = leagueIdParam ? parseInt(leagueIdParam, 10) : null;
 
     // Use query params if provided (avoids an API call to getFixtureDetails)
     if (homeTeamIdParam && awayTeamIdParam && matchDateParam) {
@@ -35,6 +38,7 @@ export async function GET(
       homeTeamId = fixture.teams.home.id;
       awayTeamId = fixture.teams.away.id;
       kickoff = new Date(fixture.fixture.date).getTime();
+      if (!leagueId) leagueId = fixture.league.id;
     }
     const msUntilKickoff = kickoff - Date.now();
     const shouldCheckLineups = msUntilKickoff <= 90 * 60 * 1000; // 90 minutes
@@ -142,6 +146,39 @@ export async function GET(
         const bInLineup = lineupPlayerIds.has(b.id) ? 0 : 1;
         return aInLineup - bInLineup;
       });
+    }
+
+    // Merge player season stats if available (pre-fetched in background)
+    if (leagueId) {
+      const league = LEAGUES.find(l => l.id === leagueId);
+      if (league) {
+        try {
+          // Non-blocking: getTeamPlayerStats returns from cache if pre-fetched,
+          // otherwise fetches on-demand (slower first time only)
+          const [homeStats, awayStats] = await Promise.all([
+            getTeamPlayerStats(homeTeamId, league.id, league.season),
+            getTeamPlayerStats(awayTeamId, league.id, league.season),
+          ]);
+
+          for (const p of players) {
+            const stats = p.teamId === homeTeamId
+              ? homeStats.get(p.id)
+              : awayStats.get(p.id);
+            if (stats) {
+              p.seasonAppearances = stats.appearances;
+              p.seasonGoals = stats.goals;
+              p.seasonAssists = stats.assists;
+            } else {
+              p.seasonAppearances = 0;
+              p.seasonGoals = 0;
+              p.seasonAssists = 0;
+            }
+          }
+        } catch (err) {
+          console.error('[Squads] Failed to merge player stats:', err);
+          // Non-fatal: picker works fine without stats
+        }
+      }
     }
 
     return NextResponse.json({
