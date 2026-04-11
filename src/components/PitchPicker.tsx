@@ -108,7 +108,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
           if (!searchQuery) return true;
           return p.name.toLowerCase().includes(searchQuery.toLowerCase());
         })
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => (b.appearances ?? 0) - (a.appearances ?? 0))
     : [];
 
   const handleSelectPlayer = (player: NormalizedPlayer) => {
