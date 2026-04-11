@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSquad, getFixtureDetails, getFixtureLineups, getTeamPlayerStats, LEAGUES } from '@/lib/api-football';
+import { getSquad, getFixtureDetails, getFixtureLineups, getTeamPlayerStats, LEAGUES, INTERNATIONAL_LEAGUE_IDS } from '@/lib/api-football';
 import { normalizePosition, normalizeLineupPosition, sanitizePlayerName } from '@/lib/utils';
 import type { NormalizedPlayer } from '@/types';
 
@@ -149,45 +149,36 @@ export async function GET(
     }
 
     // Merge player season stats if available (pre-fetched in background)
-    if (leagueId) {
-      const league = LEAGUES.find(l => l.id === leagueId);
-      if (league) {
-        try {
-          // Non-blocking: getTeamPlayerStats returns from cache if pre-fetched,
-          // otherwise fetches on-demand (slower first time only)
-          const [homeStats, awayStats] = await Promise.all([
-            getTeamPlayerStats(homeTeamId, league.id, league.season),
-            getTeamPlayerStats(awayTeamId, league.id, league.season),
-          ]);
+    const league = leagueId ? LEAGUES.find(l => l.id === leagueId) : null;
+    const isInternationalFixture = leagueId ? INTERNATIONAL_LEAGUE_IDS.has(leagueId) : false;
 
-          for (const p of players) {
-            const stats = p.teamId === homeTeamId
-              ? homeStats.get(p.id)
-              : awayStats.get(p.id);
-            if (stats) {
-              p.seasonAppearances = stats.appearances;
-              p.seasonGoals = stats.goals;
-              p.seasonAssists = stats.assists;
-            } else {
-              p.seasonAppearances = 0;
-              p.seasonGoals = 0;
-              p.seasonAssists = 0;
-            }
-          }
+    if (league) {
+      try {
+        const [homeStats, awayStats] = await Promise.all([
+          getTeamPlayerStats(homeTeamId, league.season),
+          getTeamPlayerStats(awayTeamId, league.season),
+        ]);
 
-          // Sort by appearances (highest first), keeping lineup players on top
-          players.sort((a, b) => {
-            // Lineup players first (starters then bench)
-            const aLineup = a.lineupStatus === 'starter' ? 0 : a.lineupStatus === 'bench' ? 1 : 2;
-            const bLineup = b.lineupStatus === 'starter' ? 0 : b.lineupStatus === 'bench' ? 1 : 2;
-            if (aLineup !== bLineup) return aLineup - bLineup;
-            // Within each group, sort by appearances descending
-            return (b.seasonAppearances ?? 0) - (a.seasonAppearances ?? 0);
-          });
-        } catch (err) {
-          console.error('[Squads] Failed to merge player stats:', err);
-          // Non-fatal: picker works fine without stats
+        for (const p of players) {
+          const stats = p.teamId === homeTeamId
+            ? homeStats.get(p.id)
+            : awayStats.get(p.id);
+          p.clubAppearances = stats?.clubAppearances ?? 0;
+          p.internationalAppearances = stats?.internationalAppearances ?? 0;
         }
+
+        // Sort by relevant appearances (highest first), keeping lineup players on top
+        players.sort((a, b) => {
+          const aLineup = a.lineupStatus === 'starter' ? 0 : a.lineupStatus === 'bench' ? 1 : 2;
+          const bLineup = b.lineupStatus === 'starter' ? 0 : b.lineupStatus === 'bench' ? 1 : 2;
+          if (aLineup !== bLineup) return aLineup - bLineup;
+          // Sort by the relevant appearance type for this fixture
+          const aApps = isInternationalFixture ? (a.internationalAppearances ?? 0) : (a.clubAppearances ?? 0);
+          const bApps = isInternationalFixture ? (b.internationalAppearances ?? 0) : (b.clubAppearances ?? 0);
+          return bApps - aApps;
+        });
+      } catch (err) {
+        console.error('[Squads] Failed to merge player stats:', err);
       }
     }
 

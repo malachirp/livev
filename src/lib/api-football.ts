@@ -68,14 +68,21 @@ const fixtureDetailsCache = new Map<number, CacheEntry<ApiFixture>>();
 const fixtureEventsCache = new Map<number, CacheEntry<ApiFixtureEvent[]>>();
 const fixturePlayerStatsCache = new Map<number, CacheEntry<ApiFixturePlayersResponse[]>>();
 
-// Player season stats cache: keyed by "teamId-leagueId-season"
-// Stores a map of playerId -> { appearances, goals, assists }
+// Player season stats cache: keyed by "teamId-season"
+// Stores a map of playerId -> { clubAppearances, internationalAppearances }
 export interface PlayerSeasonStats {
-  appearances: number;
-  goals: number;
-  assists: number;
+  clubAppearances: number;
+  internationalAppearances: number;
 }
 const playerStatsCache = new Map<string, CacheEntry<Map<number, PlayerSeasonStats>>>();
+
+// International competition league IDs (national teams) — everything else is club
+// 1=World Cup, 4=Euro, 5=Nations League, 6=Africa Cup, 9=Copa America
+// 10=Friendlies, 11=WC Qualifiers (CAF), 29=WC Qual (AFC), 31=WC Qual (CONMEBOL)
+// 32=WC Qual (UEFA), 33=WC Qual (CONCACAF), 34=WC Qual (OFC)
+export const INTERNATIONAL_LEAGUE_IDS = new Set([
+  1, 4, 5, 6, 9, 10, 11, 29, 30, 31, 32, 33, 34,
+]);
 
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -306,18 +313,18 @@ interface ApiPlayerStatsResponse {
 }
 
 /**
- * Fetch season stats for all players in a team for a given league+season.
+ * Fetch season stats for all players in a team for a given season.
+ * No league filter — we get all competitions and sum club vs international.
  * Handles pagination (API returns 20 per page). Returns a Map of playerId -> stats.
  */
 export async function getTeamPlayerStats(
   teamId: number,
-  leagueId: number,
   season: number,
 ): Promise<Map<number, PlayerSeasonStats>> {
-  const cacheKey = `${teamId}-${leagueId}-${season}`;
+  const cacheKey = `${teamId}-${season}`;
   const cached = getCached(playerStatsCache, cacheKey);
   if (cached) {
-    console.log(`[API-Football] Cache hit for player stats: team=${teamId} league=${leagueId}`);
+    console.log(`[API-Football] Cache hit for player stats: team=${teamId}`);
     return cached;
   }
 
@@ -330,11 +337,10 @@ export async function getTeamPlayerStats(
     while (hasMore) {
       const url = new URL(`${API_BASE}/players`);
       url.searchParams.set('team', String(teamId));
-      url.searchParams.set('league', String(leagueId));
       url.searchParams.set('season', String(season));
       url.searchParams.set('page', String(page));
 
-      console.log(`[API-Football] Fetching player stats: team=${teamId} league=${leagueId} page=${page}`);
+      console.log(`[API-Football] Fetching player stats: team=${teamId} season=${season} page=${page}`);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
@@ -358,16 +364,20 @@ export async function getTeamPlayerStats(
 
         for (const entry of results) {
           if (entry.statistics && entry.statistics.length > 0) {
-            // Find the stats entry matching our target league (API returns all competitions)
-            const stat = entry.statistics.find(s => s.league.id === leagueId)
-              || entry.statistics.find(s => s.team.id === teamId);
-            if (stat) {
-              statsMap.set(entry.player.id, {
-                appearances: stat.games.appearences ?? 0,
-                goals: stat.goals.total ?? 0,
-                assists: stat.goals.assists ?? 0,
-              });
+            let clubApps = 0;
+            let intlApps = 0;
+            for (const stat of entry.statistics) {
+              const apps = stat.games.appearences ?? 0;
+              if (INTERNATIONAL_LEAGUE_IDS.has(stat.league.id)) {
+                intlApps += apps;
+              } else {
+                clubApps += apps;
+              }
             }
+            statsMap.set(entry.player.id, {
+              clubAppearances: clubApps,
+              internationalAppearances: intlApps,
+            });
           }
         }
 
@@ -404,8 +414,8 @@ let prefetchRunning = false;
 export function prefetchPlayerStats(fixtures: ApiFixture[]) {
   if (prefetchRunning) return;
 
-  // Collect unique team+league+season combos
-  const toFetch: { teamId: number; leagueId: number; season: number }[] = [];
+  // Collect unique team+season combos
+  const toFetch: { teamId: number; season: number }[] = [];
   const seen = new Set<string>();
 
   for (const f of fixtures) {
@@ -413,7 +423,7 @@ export function prefetchPlayerStats(fixtures: ApiFixture[]) {
     if (!league) continue;
 
     for (const teamId of [f.teams.home.id, f.teams.away.id]) {
-      const key = `${teamId}-${league.id}-${league.season}`;
+      const key = `${teamId}-${league.season}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
@@ -421,7 +431,7 @@ export function prefetchPlayerStats(fixtures: ApiFixture[]) {
       const cached = getCached(playerStatsCache, key);
       if (cached) continue;
 
-      toFetch.push({ teamId, leagueId: league.id, season: league.season });
+      toFetch.push({ teamId, season: league.season });
     }
   }
 
@@ -433,9 +443,9 @@ export function prefetchPlayerStats(fixtures: ApiFixture[]) {
   // Run in background — sequential with delays
   (async () => {
     for (let i = 0; i < toFetch.length; i++) {
-      const { teamId, leagueId, season } = toFetch[i];
+      const { teamId, season } = toFetch[i];
       try {
-        await getTeamPlayerStats(teamId, leagueId, season);
+        await getTeamPlayerStats(teamId, season);
       } catch (err) {
         console.error(`[API-Football] Prefetch failed for team ${teamId}:`, err);
       }
