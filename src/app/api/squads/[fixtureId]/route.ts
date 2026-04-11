@@ -162,10 +162,8 @@ export async function GET(
         ]);
 
         for (const p of players) {
-          const stats = p.teamId === homeTeamId
-            ? homeStats.get(p.id)
-            : awayStats.get(p.id);
-          p.appearances = stats?.teamAppearances ?? 0;
+          const statsMap = p.teamId === homeTeamId ? homeStats : awayStats;
+          p.appearances = statsMap.get(p.id) ?? 0;
         }
 
         // Sort by appearances (highest first), keeping lineup players on top

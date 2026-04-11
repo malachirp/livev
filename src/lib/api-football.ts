@@ -69,14 +69,8 @@ const fixtureEventsCache = new Map<number, CacheEntry<ApiFixtureEvent[]>>();
 const fixturePlayerStatsCache = new Map<number, CacheEntry<ApiFixturePlayersResponse[]>>();
 
 // Player season stats cache: keyed by "teamId-season"
-// Stores a map of playerId -> { teamAppearances, otherAppearances }
-// "team" = the team we queried (could be club or national team)
-// "other" = all other teams (international duty if queried club, club if queried national team)
-export interface PlayerSeasonStats {
-  teamAppearances: number;
-  otherAppearances: number;
-}
-const playerStatsCache = new Map<string, CacheEntry<Map<number, PlayerSeasonStats>>>();
+// Stores a map of playerId -> appearances for that team this season
+const playerStatsCache = new Map<string, CacheEntry<Map<number, number>>>();
 
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -307,14 +301,14 @@ interface ApiPlayerStatsResponse {
 }
 
 /**
- * Fetch season stats for all players in a team for a given season.
- * No league filter — we get all competitions and sum club vs international.
- * Handles pagination (API returns 20 per page). Returns a Map of playerId -> stats.
+ * Fetch season appearances for all players in a team.
+ * Only counts appearances for THIS team (stat.team.id === teamId).
+ * Returns a Map of playerId -> number of appearances.
  */
 export async function getTeamPlayerStats(
   teamId: number,
   season: number,
-): Promise<Map<number, PlayerSeasonStats>> {
+): Promise<Map<number, number>> {
   const cacheKey = `${teamId}-${season}`;
   const cached = getCached(playerStatsCache, cacheKey);
   if (cached) {
@@ -322,7 +316,7 @@ export async function getTeamPlayerStats(
     return cached;
   }
 
-  const statsMap = new Map<number, PlayerSeasonStats>();
+  const statsMap = new Map<number, number>();
 
   try {
     let page = 1;
@@ -358,22 +352,13 @@ export async function getTeamPlayerStats(
 
         for (const entry of results) {
           if (entry.statistics && entry.statistics.length > 0) {
-            let clubApps = 0;
-            let intlApps = 0;
+            let apps = 0;
             for (const stat of entry.statistics) {
-              const apps = stat.games.appearences ?? 0;
-              // If the stat's team matches the team we queried, it's "for this team"
-              // Otherwise it's appearances for another team (international duty etc.)
               if (stat.team.id === teamId) {
-                clubApps += apps;
-              } else {
-                intlApps += apps;
+                apps += stat.games.appearences ?? 0;
               }
             }
-            statsMap.set(entry.player.id, {
-              teamAppearances: clubApps,
-              otherAppearances: intlApps,
-            });
+            statsMap.set(entry.player.id, apps);
           }
         }
 
