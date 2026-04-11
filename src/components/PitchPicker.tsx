@@ -274,7 +274,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
                           <span className="text-[10px] text-white/40">{player.teamName}</span>
                         </div>
                         {player.lineupStatus && (
-                          <span className={`text-[10px] font-black w-5 text-center ${
+                          <span className={`text-xs font-black w-5 text-center ${
                             player.lineupStatus === 'starter' ? 'text-accent/60' : 'text-white/30'
                           }`}>
                             {player.lineupStatus === 'starter' ? 'S' : 'B'}
