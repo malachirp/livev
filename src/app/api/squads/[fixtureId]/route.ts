@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSquad, getFixtureDetails, getFixtureLineups, getTeamPlayerStats, LEAGUES, INTERNATIONAL_LEAGUE_IDS } from '@/lib/api-football';
+import { getSquad, getFixtureDetails, getFixtureLineups, getTeamPlayerStats, LEAGUES } from '@/lib/api-football';
 import { normalizePosition, normalizeLineupPosition, sanitizePlayerName } from '@/lib/utils';
 import type { NormalizedPlayer } from '@/types';
 
@@ -149,8 +149,10 @@ export async function GET(
     }
 
     // Merge player season stats if available (pre-fetched in background)
+    // For club fixtures: show appearances for that club (teamAppearances)
+    // For international fixtures: show caps for that national team (also teamAppearances)
+    // The API is queried by team, so teamAppearances is always "for this team"
     const league = leagueId ? LEAGUES.find(l => l.id === leagueId) : null;
-    const isInternationalFixture = leagueId ? INTERNATIONAL_LEAGUE_IDS.has(leagueId) : false;
 
     if (league) {
       try {
@@ -163,19 +165,15 @@ export async function GET(
           const stats = p.teamId === homeTeamId
             ? homeStats.get(p.id)
             : awayStats.get(p.id);
-          p.clubAppearances = stats?.clubAppearances ?? 0;
-          p.internationalAppearances = stats?.internationalAppearances ?? 0;
+          p.appearances = stats?.teamAppearances ?? 0;
         }
 
-        // Sort by relevant appearances (highest first), keeping lineup players on top
+        // Sort by appearances (highest first), keeping lineup players on top
         players.sort((a, b) => {
           const aLineup = a.lineupStatus === 'starter' ? 0 : a.lineupStatus === 'bench' ? 1 : 2;
           const bLineup = b.lineupStatus === 'starter' ? 0 : b.lineupStatus === 'bench' ? 1 : 2;
           if (aLineup !== bLineup) return aLineup - bLineup;
-          // Sort by the relevant appearance type for this fixture
-          const aApps = isInternationalFixture ? (a.internationalAppearances ?? 0) : (a.clubAppearances ?? 0);
-          const bApps = isInternationalFixture ? (b.internationalAppearances ?? 0) : (b.clubAppearances ?? 0);
-          return bApps - aApps;
+          return (b.appearances ?? 0) - (a.appearances ?? 0);
         });
       } catch (err) {
         console.error('[Squads] Failed to merge player stats:', err);

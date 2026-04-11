@@ -69,20 +69,14 @@ const fixtureEventsCache = new Map<number, CacheEntry<ApiFixtureEvent[]>>();
 const fixturePlayerStatsCache = new Map<number, CacheEntry<ApiFixturePlayersResponse[]>>();
 
 // Player season stats cache: keyed by "teamId-season"
-// Stores a map of playerId -> { clubAppearances, internationalAppearances }
+// Stores a map of playerId -> { teamAppearances, otherAppearances }
+// "team" = the team we queried (could be club or national team)
+// "other" = all other teams (international duty if queried club, club if queried national team)
 export interface PlayerSeasonStats {
-  clubAppearances: number;
-  internationalAppearances: number;
+  teamAppearances: number;
+  otherAppearances: number;
 }
 const playerStatsCache = new Map<string, CacheEntry<Map<number, PlayerSeasonStats>>>();
-
-// International competition league IDs (national teams) — everything else is club
-// 1=World Cup, 4=Euro, 5=Nations League, 6=Africa Cup, 9=Copa America
-// 10=Friendlies, 11=WC Qualifiers (CAF), 29=WC Qual (AFC), 31=WC Qual (CONMEBOL)
-// 32=WC Qual (UEFA), 33=WC Qual (CONCACAF), 34=WC Qual (OFC)
-export const INTERNATIONAL_LEAGUE_IDS = new Set([
-  1, 4, 5, 6, 9, 10, 11, 29, 30, 31, 32, 33, 34,
-]);
 
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -368,15 +362,17 @@ export async function getTeamPlayerStats(
             let intlApps = 0;
             for (const stat of entry.statistics) {
               const apps = stat.games.appearences ?? 0;
-              if (INTERNATIONAL_LEAGUE_IDS.has(stat.league.id)) {
-                intlApps += apps;
-              } else {
+              // If the stat's team matches the team we queried, it's "for this team"
+              // Otherwise it's appearances for another team (international duty etc.)
+              if (stat.team.id === teamId) {
                 clubApps += apps;
+              } else {
+                intlApps += apps;
               }
             }
             statsMap.set(entry.player.id, {
-              clubAppearances: clubApps,
-              internationalAppearances: intlApps,
+              teamAppearances: clubApps,
+              otherAppearances: intlApps,
             });
           }
         }

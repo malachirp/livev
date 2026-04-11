@@ -273,8 +273,8 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
                           </span>
                           <span className="text-[10px] text-white/40">
                             {player.teamName}
-                            {player.clubAppearances != null && (
-                              <span className="text-white/25"> · {player.clubAppearances} apps, {player.internationalAppearances ?? 0} caps</span>
+                            {player.appearances != null && (
+                              <span className="text-white/25"> · {player.appearances} apps</span>
                             )}
                           </span>
                         </div>
