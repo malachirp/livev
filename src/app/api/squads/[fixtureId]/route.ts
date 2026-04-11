@@ -174,6 +174,16 @@ export async function GET(
               p.seasonAssists = 0;
             }
           }
+
+          // Sort by appearances (highest first), keeping lineup players on top
+          players.sort((a, b) => {
+            // Lineup players first (starters then bench)
+            const aLineup = a.lineupStatus === 'starter' ? 0 : a.lineupStatus === 'bench' ? 1 : 2;
+            const bLineup = b.lineupStatus === 'starter' ? 0 : b.lineupStatus === 'bench' ? 1 : 2;
+            if (aLineup !== bLineup) return aLineup - bLineup;
+            // Within each group, sort by appearances descending
+            return (b.seasonAppearances ?? 0) - (a.seasonAppearances ?? 0);
+          });
         } catch (err) {
           console.error('[Squads] Failed to merge player stats:', err);
           // Non-fatal: picker works fine without stats

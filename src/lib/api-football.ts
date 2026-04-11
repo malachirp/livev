@@ -358,12 +358,16 @@ export async function getTeamPlayerStats(
 
         for (const entry of results) {
           if (entry.statistics && entry.statistics.length > 0) {
-            const stat = entry.statistics[0];
-            statsMap.set(entry.player.id, {
-              appearances: stat.games.appearences ?? 0,
-              goals: stat.goals.total ?? 0,
-              assists: stat.goals.assists ?? 0,
-            });
+            // Find the stats entry matching our target league (API returns all competitions)
+            const stat = entry.statistics.find(s => s.league.id === leagueId)
+              || entry.statistics.find(s => s.team.id === teamId);
+            if (stat) {
+              statsMap.set(entry.player.id, {
+                appearances: stat.games.appearences ?? 0,
+                goals: stat.goals.total ?? 0,
+                assists: stat.goals.assists ?? 0,
+              });
+            }
           }
         }
 
