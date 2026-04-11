@@ -156,10 +156,11 @@ export async function GET(
 
     if (league) {
       try {
-        const [homeStats, awayStats] = await Promise.all([
-          getTeamPlayerStats(homeTeamId, league.season),
-          getTeamPlayerStats(awayTeamId, league.season),
-        ]);
+        // Fetch sequentially to avoid API rate-limiting when neither is cached
+        const homeStats = await getTeamPlayerStats(homeTeamId, league.season);
+        const awayStats = await getTeamPlayerStats(awayTeamId, league.season);
+
+        console.log(`[Squads] Stats: home team ${homeTeamId} has ${homeStats.size} players, away team ${awayTeamId} has ${awayStats.size} players`);
 
         for (const p of players) {
           const statsMap = p.teamId === homeTeamId ? homeStats : awayStats;

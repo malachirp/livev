@@ -379,7 +379,12 @@ export async function getTeamPlayerStats(
     console.error(`[API-Football] Failed to fetch player stats for team ${teamId}:`, err);
   }
 
-  playerStatsCache.set(cacheKey, { data: statsMap, expiresAt: Date.now() + PLAYER_STATS_CACHE_TTL });
+  // Only cache if we actually got data — avoid caching empty results from failed API calls for 24h
+  if (statsMap.size > 0) {
+    playerStatsCache.set(cacheKey, { data: statsMap, expiresAt: Date.now() + PLAYER_STATS_CACHE_TTL });
+  } else {
+    console.warn(`[API-Football] No player stats found for team ${teamId} — not caching empty result`);
+  }
   return statsMap;
 }
 
