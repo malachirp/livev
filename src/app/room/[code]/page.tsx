@@ -11,6 +11,7 @@ import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
 import type { RoomData, PlayerData, ApiFixtureEvent, PickSlot } from '@/types';
 import HelpButton from '@/components/HelpButton';
+import ContactButton from '@/components/ContactButton';
 import HomeButton from '@/components/HomeButton';
 import { track } from '@/lib/track';
 
@@ -316,6 +317,7 @@ export default function LiveRoomPage() {
           <div className="flex items-center gap-2">
             <ShareButton roomCode={code} matchTitle={`${room.homeTeamName} vs ${room.awayTeamName}`} />
             <HelpButton />
+            <ContactButton />
             <HomeButton />
           </div>
         </div>

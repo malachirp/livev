@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import HelpButton from './HelpButton';
 import HomeButton from './HomeButton';
+import ContactButton from './ContactButton';
 import ShareButton from './ShareButton';
 import { track } from '@/lib/track';
 
@@ -28,6 +29,7 @@ export default function Header({ showBack, backHref }: { showBack?: boolean; bac
       <div className="flex items-center gap-2">
         <ShareButton roomCode="" />
         <HelpButton />
+        <ContactButton />
         <HomeButton />
       </div>
     </header>
