@@ -44,6 +44,15 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
   const selectorDragStartY = useRef<number | null>(null);
   const selectorTranslateY = useRef(0);
 
+  // Delay single-tap captain action so a double-tap can cancel it
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearPendingTap = () => {
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = null;
+    }
+  };
+
   const handleSelectorTouchStart = (e: React.TouchEvent) => {
     selectorDragStartY.current = e.touches[0].clientY;
   };
@@ -82,6 +91,10 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
       setCaptainSlot(existingCaptainSlot);
     }
   }, [existingPicks, existingCaptainSlot]);
+
+  useEffect(() => {
+    return () => clearPendingTap();
+  }, []);
 
   const getTeamCount = useCallback((teamId: number) => {
     return picks.filter(p => p && p.teamId === teamId).length;
@@ -325,13 +338,19 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
         key={slot.index}
         onClick={() => {
           if (pick) {
-            handleToggleCaptain(slotIndex);
+            // Delay captain toggle so a double-tap can cancel it (double-tap = change player)
+            clearPendingTap();
+            tapTimeoutRef.current = setTimeout(() => {
+              handleToggleCaptain(slotIndex);
+              tapTimeoutRef.current = null;
+            }, 250);
           } else {
             setActiveSlot(slotIndex);
             setSearchQuery('');
           }
         }}
         onDoubleClick={() => {
+          clearPendingTap();
           setActiveSlot(slotIndex);
           setSearchQuery('');
         }}
