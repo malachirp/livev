@@ -121,7 +121,13 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
           if (!searchQuery) return true;
           return p.name.toLowerCase().includes(searchQuery.toLowerCase());
         })
-        .sort((a, b) => (b.appearances ?? 0) - (a.appearances ?? 0))
+        .sort((a, b) => {
+          // Lineup starters first, then bench, then non-lineup. Within each group, by appearances desc.
+          const aLineup = a.lineupStatus === 'starter' ? 0 : a.lineupStatus === 'bench' ? 1 : 2;
+          const bLineup = b.lineupStatus === 'starter' ? 0 : b.lineupStatus === 'bench' ? 1 : 2;
+          if (aLineup !== bLineup) return aLineup - bLineup;
+          return (b.appearances ?? 0) - (a.appearances ?? 0);
+        })
     : [];
 
   const handleSelectPlayer = (player: NormalizedPlayer) => {
