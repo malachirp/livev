@@ -30,7 +30,7 @@ async function apiFetch<T>(endpoint: string, params: Record<string, string | num
         'x-apisports-key': getApiKey(),
       },
       signal: controller.signal,
-      next: { revalidate: 0 },
+      cache: 'no-store',
     });
 
     if (!res.ok) {
@@ -338,7 +338,7 @@ export async function getTeamPlayerStats(
         const res = await fetch(url.toString(), {
           headers: { 'x-apisports-key': getApiKey() },
           signal: controller.signal,
-          next: { revalidate: 0 },
+          cache: 'no-store',
         });
         clearTimeout(timeout);
 
