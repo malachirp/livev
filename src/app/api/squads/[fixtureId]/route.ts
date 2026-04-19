@@ -43,11 +43,15 @@ export async function GET(
     const msUntilKickoff = kickoff - Date.now();
     const shouldCheckLineups = msUntilKickoff <= 90 * 60 * 1000; // 90 minutes
 
+    console.log(`[Squads] fixture=${fixtureId} kickoff=${new Date(kickoff).toISOString()} msUntilKickoff=${msUntilKickoff} shouldCheckLineups=${shouldCheckLineups}`);
+
     const [homeSquad, awaySquad, lineups] = await Promise.all([
       getSquad(homeTeamId),
       getSquad(awayTeamId),
       shouldCheckLineups ? getFixtureLineups(fixtureId) : Promise.resolve(null),
     ]);
+
+    console.log(`[Squads] fixture=${fixtureId} lineups=${lineups ? lineups.length + ' teams' : 'null'}`);
 
     // Build a map of lineup players keyed by player ID (globally unique in API-Football)
     // Previously keyed by "${teamId}-${playerId}" which broke when team IDs differed between endpoints
@@ -87,9 +91,9 @@ export async function GET(
     const normalize = (squad: typeof homeSquad): NormalizedPlayer[] =>
       squad.players.map(p => {
         const lineupInfo = lineupPlayerMap.get(p.id);
-        // Always use the squad-registered position, even when the player is in the lineup.
-        // This keeps a player in the same pitch slot regardless of tactical deployment.
-        const position = normalizePosition(p.position);
+        const position = lineupInfo
+          ? normalizeLineupPosition(lineupInfo.pos)
+          : normalizePosition(p.position);
         const number = lineupInfo ? lineupInfo.number : p.number;
 
         return {

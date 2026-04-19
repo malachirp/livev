@@ -276,10 +276,11 @@ export async function getFixtureLineups(fixtureId: number): Promise<ApiLineupRes
   try {
     const results = await apiFetch<ApiLineupResponse>('/fixtures/lineups', { fixture: fixtureId });
     if (!results.length) {
-      // No lineups released yet — cache the empty result briefly so we don't hammer the API
+      console.log(`[API-Football] No lineups released yet for fixture ${fixtureId} — caching null for ${LINEUP_CACHE_TTL / 1000}s`);
       lineupCache.set(fixtureId, { data: null, expiresAt: Date.now() + LINEUP_CACHE_TTL });
       return null;
     }
+    console.log(`[API-Football] Lineups found for fixture ${fixtureId}: ${results.length} teams, ${results.reduce((n, t) => n + (t.startXI?.length ?? 0), 0)} starters`);
     lineupCache.set(fixtureId, { data: results, expiresAt: Date.now() + LINEUP_CACHE_TTL });
     return results;
   } catch (err) {
