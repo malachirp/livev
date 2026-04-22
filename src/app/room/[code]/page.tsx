@@ -76,6 +76,12 @@ export default function LiveRoomPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
+  // Rename state
+  const [showRename, setShowRename] = useState(false);
+  const [renameName, setRenameName] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+
   // Drag-to-dismiss for join bottom sheet
   const joinSheetRef = useRef<HTMLDivElement>(null);
   const joinDragStartY = useRef<number | null>(null);
@@ -263,6 +269,33 @@ export default function LiveRoomPage() {
     }
   };
 
+  const handleRename = async () => {
+    if (!renameName.trim()) return;
+    setRenaming(true);
+    setRenameError(null);
+
+    try {
+      const res = await fetch(`/api/rooms/${code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: renameName.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to rename');
+
+      setCurrentPlayer(prev => prev ? { ...prev, displayName: renameName.trim() } : prev);
+      setLeaderboard(prev => prev.map(p =>
+        p.id === currentPlayer?.id ? { ...p, displayName: renameName.trim() } : p
+      ));
+      setShowRename(false);
+      setRenaming(false);
+    } catch (err: any) {
+      setRenameError(err.message);
+      setRenaming(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -394,11 +427,17 @@ export default function LiveRoomPage() {
       {leaderboardView === 'friends' ? (
         <Leaderboard
           players={leaderboard}
+          currentPlayerId={currentPlayer?.id}
           homeTeamId={room.homeTeamId}
           awayTeamId={room.awayTeamId}
           homeTeamName={room.homeTeamName}
           awayTeamName={room.awayTeamName}
           teamsLocked={teamsLocked}
+          onRename={() => {
+            setRenameName(currentPlayer?.displayName || '');
+            setRenameError(null);
+            setShowRename(true);
+          }}
         />
       ) : (
         <GlobalLeaderboard
@@ -508,6 +547,48 @@ export default function LiveRoomPage() {
                 }`}
               >
                 {joining ? 'Joining...' : 'Join & Pick Team'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Rename bottom sheet */}
+      {showRename && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
+            onClick={() => { setShowRename(false); setRenameError(null); }}
+          />
+          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up">
+            <div className="flex justify-center py-3">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            <div className="px-6 pb-8">
+              <h3 className="text-lg font-black text-white mb-4">Change Name</h3>
+              <input
+                type="text"
+                value={renameName}
+                onChange={e => setRenameName(e.target.value)}
+                maxLength={20}
+                autoFocus
+                className="w-full px-4 py-3.5 rounded-xl bg-charcoal text-white text-base font-medium placeholder-white/30 outline-none focus:ring-2 focus:ring-accent/30 mb-2"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && renameName.trim()) handleRename();
+                }}
+              />
+              {renameError && (
+                <p className="text-live-red text-xs mb-2">{renameError}</p>
+              )}
+              <button
+                onClick={handleRename}
+                disabled={!renameName.trim() || renaming}
+                className={`w-full py-4 rounded-2xl font-black text-base transition-all mt-2 ${
+                  renameName.trim()
+                    ? 'bg-accent text-navy active:scale-[0.98]'
+                    : 'bg-charcoal text-white/30 cursor-not-allowed'
+                }`}
+              >
+                {renaming ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

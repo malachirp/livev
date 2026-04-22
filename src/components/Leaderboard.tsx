@@ -8,11 +8,13 @@ import TeamSheet from './TeamSheet';
 interface Props {
   players: PlayerData[];
   currentSessionToken?: string;
+  currentPlayerId?: string;
   homeTeamId: number;
   awayTeamId: number;
   homeTeamName?: string;
   awayTeamName?: string;
   teamsLocked?: boolean;
+  onRename?: () => void;
 }
 
 function getDominantTeamId(picks: PlayerData['picks']): number | null {
@@ -23,7 +25,7 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
   return Number(sorted[0][0]);
 }
 
-export default function Leaderboard({ players, currentSessionToken, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true }: Props) {
+export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, onRename }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -100,6 +102,17 @@ export default function Leaderboard({ players, currentSessionToken, homeTeamId, 
                   {player.displayName}
                   {player.isCreator && (
                     <span className="ml-1.5 text-[10px] font-medium text-accent/60 uppercase">Host</span>
+                  )}
+                  {currentPlayerId === player.id && !teamsLocked && onRename && (
+                    <span
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); onRename(); }}
+                      className="ml-1.5 inline-flex align-middle text-white/25 hover:text-white/50 transition-colors"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
+                      </svg>
+                    </span>
                   )}
                 </span>
                 {!hasPicks && (

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
+import { checkDisplayName } from '@/lib/name-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,5 +114,67 @@ export async function GET(
       { error: 'Failed to fetch room' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { code: string } }
+) {
+  try {
+    const { displayName } = await request.json();
+
+    if (!displayName || typeof displayName !== 'string' || !displayName.trim()) {
+      return NextResponse.json({ error: 'Display name is required' }, { status: 400 });
+    }
+
+    const trimmed = displayName.trim();
+    if (trimmed.length > 20) {
+      return NextResponse.json({ error: 'Name too long' }, { status: 400 });
+    }
+
+    const nameError = checkDisplayName(trimmed);
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { code: params.code },
+      include: { players: true },
+    });
+
+    if (!room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
+    const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
+    const kickoffTime = new Date(room.matchDate).getTime();
+    if (Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS) {
+      return NextResponse.json({ error: 'Teams are locked' }, { status: 403 });
+    }
+
+    const cookieStore = cookies();
+    const sessionToken = getSessionToken(cookieStore.get('livev_session')?.value, params.code);
+    const currentPlayer = sessionToken
+      ? room.players.find(p => p.sessionToken === sessionToken)
+      : null;
+
+    if (!currentPlayer) {
+      return NextResponse.json({ error: 'Not in this room' }, { status: 403 });
+    }
+
+    if (room.players.some(p => p.id !== currentPlayer.id && p.displayName.toLowerCase() === trimmed.toLowerCase())) {
+      return NextResponse.json({ error: 'Name already taken in this room' }, { status: 409 });
+    }
+
+    await prisma.player.update({
+      where: { id: currentPlayer.id },
+      data: { displayName: trimmed },
+    });
+
+    return NextResponse.json({ ok: true, displayName: trimmed });
+  } catch (error) {
+    console.error('Failed to update display name:', error);
+    return NextResponse.json({ error: 'Failed to update name' }, { status: 500 });
   }
 }
