@@ -100,9 +100,6 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
               <div className="flex-1 text-left min-w-0">
                 <span className="text-sm font-bold text-white truncate block">
                   {player.displayName}
-                  {player.isCreator && (
-                    <span className="ml-1.5 text-[10px] font-medium text-accent/60 uppercase">Host</span>
-                  )}
                   {currentPlayerId === player.id && !teamsLocked && onRename && (
                     <span
                       role="button"
@@ -113,6 +110,9 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
                         <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
                       </svg>
                     </span>
+                  )}
+                  {player.isCreator && (
+                    <span className="ml-1.5 text-[10px] font-medium text-accent/60 uppercase">Host</span>
                   )}
                 </span>
                 {!hasPicks && (
