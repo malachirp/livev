@@ -75,10 +75,11 @@ const playerStatsCache = new Map<string, CacheEntry<Map<number, number>>>();
 const FIXTURE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const SQUAD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const PLAYER_STATS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — season stats change slowly
-const LINEUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (short so we pick up lineups when released)
-const FIXTURE_DETAILS_CACHE_TTL = 55 * 1000; // 55 seconds — aligned with 1-min client polling
-const FIXTURE_EVENTS_CACHE_TTL = 55 * 1000; // 55 seconds
-const FIXTURE_PLAYER_STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — player stats don't change frequently
+const LINEUP_CACHE_TTL_FOUND = 5 * 60 * 1000;       // 5 min once lineups are out (they don't change)
+const LINEUP_CACHE_TTL_NULL = 60 * 1000;            // 60s when lineup not yet released — re-check often near kickoff
+const FIXTURE_DETAILS_CACHE_TTL = 55 * 1000;        // 55 seconds — aligned with 1-min client polling
+const FIXTURE_EVENTS_CACHE_TTL = 55 * 1000;         // 55 seconds
+const FIXTURE_PLAYER_STATS_CACHE_TTL = 60 * 1000;   // 60s — keep live goal/assist credit fresh
 
 function getCached<T>(cache: Map<string | number, CacheEntry<T>>, key: string | number): T | null {
   const entry = cache.get(key);
@@ -250,6 +251,7 @@ export function clearFixtureCaches(fixtureId: number) {
   fixtureDetailsCache.delete(fixtureId);
   fixtureEventsCache.delete(fixtureId);
   fixturePlayerStatsCache.delete(fixtureId);
+  lineupCache.delete(fixtureId);
 }
 
 export async function getFixturePlayerStats(fixtureId: number): Promise<ApiFixturePlayersResponse[]> {
@@ -276,12 +278,13 @@ export async function getFixtureLineups(fixtureId: number): Promise<ApiLineupRes
   try {
     const results = await apiFetch<ApiLineupResponse>('/fixtures/lineups', { fixture: fixtureId });
     if (!results.length) {
-      console.log(`[API-Football] No lineups released yet for fixture ${fixtureId} — caching null for ${LINEUP_CACHE_TTL / 1000}s`);
-      lineupCache.set(fixtureId, { data: null, expiresAt: Date.now() + LINEUP_CACHE_TTL });
+      // Short TTL when no lineups yet — we want to pick up the release fast.
+      console.log(`[API-Football] No lineups released yet for fixture ${fixtureId} — caching null for ${LINEUP_CACHE_TTL_NULL / 1000}s`);
+      lineupCache.set(fixtureId, { data: null, expiresAt: Date.now() + LINEUP_CACHE_TTL_NULL });
       return null;
     }
     console.log(`[API-Football] Lineups found for fixture ${fixtureId}: ${results.length} teams, ${results.reduce((n, t) => n + (t.startXI?.length ?? 0), 0)} starters`);
-    lineupCache.set(fixtureId, { data: results, expiresAt: Date.now() + LINEUP_CACHE_TTL });
+    lineupCache.set(fixtureId, { data: results, expiresAt: Date.now() + LINEUP_CACHE_TTL_FOUND });
     return results;
   } catch (err) {
     console.error(`[API-Football] Failed to fetch lineups for fixture ${fixtureId}:`, err);

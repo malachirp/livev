@@ -172,10 +172,11 @@ export default function LiveRoomPage() {
     if (isMatchLive(status)) {
       interval = 60_000; // 1 min during live match (includes HT, ET, penalties, etc.)
     } else if (isMatchFinished(status)) {
-      // Track when we first saw FT; stop polling after 5 min grace period
+      // Keep polling for 30 min after FT — API-Football final stats (ratings,
+      // late events, complete sub list) often take 20+ min to fully settle.
       if (!finishedSinceRef.current) finishedSinceRef.current = Date.now();
       const msSinceFinished = Date.now() - finishedSinceRef.current;
-      if (msSinceFinished > 5 * 60 * 1000) {
+      if (msSinceFinished > 30 * 60 * 1000) {
         return; // Grace period over — no more polling (visibility handler still works)
       }
       interval = 60_000;

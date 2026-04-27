@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
 import { checkDisplayName } from '@/lib/name-filter';
+import { refreshMatchDataIfStale } from '@/lib/match-refresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,20 @@ export async function GET(
   { params }: { params: { code: string } }
 ) {
   try {
+    // Look up the fixture id first so we can refresh stale match data
+    // BEFORE reading the players — otherwise the first paint shows stale
+    // points and users have to hard refresh.
+    const baseRoom = await prisma.room.findUnique({
+      where: { code: params.code },
+      select: { fixtureId: true },
+    });
+
+    if (!baseRoom) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
+    const matchCache = await refreshMatchDataIfStale(baseRoom.fixtureId);
+
     const room = await prisma.room.findUnique({
       where: { code: params.code },
       include: {
@@ -33,11 +48,6 @@ export async function GET(
     const currentPlayer = sessionToken
       ? room.players.find(p => p.sessionToken === sessionToken)
       : null;
-
-    // Get cached match data if available
-    const matchCache = await prisma.matchCache.findUnique({
-      where: { fixtureId: room.fixtureId },
-    });
 
     // Teams are revealed 5 minutes before kickoff
     const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;

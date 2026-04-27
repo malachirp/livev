@@ -1,152 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getFixtureDetails, getFixtureEvents, getFixturePlayerStats, clearFixtureCaches } from '@/lib/api-football';
-import { calculatePlayerPoints } from '@/lib/scoring';
 import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
+import { refreshMatchDataIfStale } from '@/lib/match-refresh';
 
 export const dynamic = 'force-dynamic';
-
-const CACHE_TTL_MS = 55_000; // 55 seconds — aligned with 1-min client polling
-
-// Grace period after FT to keep refreshing for final events/stats
-const FINISHED_GRACE_MS = 5 * 60 * 1000; // 5 minutes
-
-// Simple in-memory lock to prevent thundering herd on the same fixture
-const refreshLocks = new Map<number, Promise<void>>();
-
-// Track when each fixture was first detected as finished, so the grace period actually expires
-const finishedAt = new Map<number, number>();
-
-async function refreshMatchData(fixtureId: number, homeTeamId: number, awayTeamId: number) {
-  // If already refreshing this fixture, wait for it
-  const existing = refreshLocks.get(fixtureId);
-  if (existing) {
-    await existing;
-    return;
-  }
-
-  // Set lock BEFORE creating the async work to close the race window
-  let resolve!: () => void;
-  const lockPromise = new Promise<void>(r => { resolve = r; });
-  refreshLocks.set(fixtureId, lockPromise);
-
-  try {
-    // Check previous status to detect transition to finished
-    const prevCache = await prisma.matchCache.findUnique({ where: { fixtureId } });
-    const prevStatus = prevCache?.status;
-
-    const fixture = await getFixtureDetails(fixtureId);
-    const status = fixture.fixture.status.short;
-    const homeScore = fixture.goals.home;
-    const awayScore = fixture.goals.away;
-    const elapsed = fixture.fixture.status.elapsed ?? 0;
-    const extra = fixture.fixture.status.extra ?? 0;
-    const minute = elapsed + extra || null;
-
-    // When match just finished, clear in-memory caches to force fresh final stats from API
-    const isNowFinished = ['FT', 'AET', 'PEN'].includes(status);
-    const wasNotFinished = !prevStatus || !['FT', 'AET', 'PEN'].includes(prevStatus);
-    if (isNowFinished && wasNotFinished) {
-      console.log(`[Live] Match ${fixtureId} just finished (${status}), clearing caches for final stats`);
-      clearFixtureCaches(fixtureId);
-      if (!finishedAt.has(fixtureId)) {
-        finishedAt.set(fixtureId, Date.now());
-      }
-    }
-
-    let events: any[] | null = null;
-    let playerStats: any[] | null = null;
-
-    const matchStarted = !['NS', 'TBD', 'PST', 'CANC', 'ABD'].includes(status);
-    if (matchStarted) {
-      [events, playerStats] = await Promise.all([
-        getFixtureEvents(fixtureId).catch(() => null),
-        getFixturePlayerStats(fixtureId).catch(() => null),
-      ]);
-    }
-
-    // Only update cache if we got valid data (don't overwrite good data with failed fetches)
-    const hasEvents = events !== null;
-    const hasStats = playerStats !== null;
-
-    const updateData: any = { status, homeScore, awayScore, minute };
-    if (hasEvents) updateData.events = events;
-    if (hasStats) updateData.playerStats = playerStats;
-
-    await prisma.matchCache.upsert({
-      where: { fixtureId },
-      update: updateData,
-      create: {
-        fixtureId, status, homeScore, awayScore, minute,
-        events: events ?? [],
-        playerStats: playerStats ?? [],
-      },
-    });
-
-    // Recalculate points for ALL rooms using this fixture
-    const safeEvents = hasEvents ? events! : ((await prisma.matchCache.findUnique({ where: { fixtureId } }))?.events as any[] ?? []);
-    const safeStats = hasStats ? playerStats! : ((await prisma.matchCache.findUnique({ where: { fixtureId } }))?.playerStats as any[] ?? []);
-
-    if (matchStarted && (safeEvents.length > 0 || safeStats.length > 0)) {
-      const rooms = await prisma.room.findMany({
-        where: { fixtureId },
-        include: { players: { include: { picks: true } } },
-      });
-
-      // Batch all DB writes into a single transaction to avoid
-      // 60+ sequential round-trips that block the DB connection pool
-      const dbOps: any[] = [];
-
-      for (const room of rooms) {
-        for (const player of room.players) {
-          let playerTotalPoints = 0;
-
-          for (const pick of player.picks) {
-            const { total, breakdown } = calculatePlayerPoints(
-              pick.footballPlayerId,
-              pick.position,
-              pick.teamId,
-              safeEvents,
-              safeStats,
-              status,
-              homeScore,
-              awayScore,
-              room.homeTeamId,
-              room.awayTeamId
-            );
-
-            const isCaptain = pick.slotIndex === player.captainSlot;
-            const finalPoints = isCaptain ? total * 2 : total;
-
-            dbOps.push(prisma.pick.update({
-              where: { id: pick.id },
-              data: {
-                points: finalPoints,
-                pointsBreakdown: breakdown as any,
-              },
-            }));
-
-            playerTotalPoints += finalPoints;
-          }
-
-          dbOps.push(prisma.player.update({
-            where: { id: player.id },
-            data: { totalPoints: playerTotalPoints },
-          }));
-        }
-      }
-
-      if (dbOps.length > 0) {
-        await prisma.$transaction(dbOps);
-      }
-    }
-  } finally {
-    refreshLocks.delete(fixtureId);
-    resolve();
-  }
-}
 
 export async function GET(
   _request: Request,
@@ -161,36 +20,7 @@ export async function GET(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
 
-    // Check if cache needs refresh
-    let matchCache = await prisma.matchCache.findUnique({
-      where: { fixtureId: room.fixtureId },
-    });
-
-    const now = new Date();
-    const isStale = !matchCache || (now.getTime() - matchCache.updatedAt.getTime()) > CACHE_TTL_MS;
-
-    // Keep refreshing for live matches, pre-match, and recently finished (grace period for final stats)
-    const isFinished = matchCache && ['FT', 'AET', 'PEN'].includes(matchCache.status);
-    // Seed finishedAt from DB if server restarted after match ended
-    if (isFinished && !finishedAt.has(room.fixtureId) && matchCache) {
-      finishedAt.set(room.fixtureId, matchCache.updatedAt.getTime());
-    }
-    const finishTime = finishedAt.get(room.fixtureId);
-    const withinGracePeriod = isFinished && finishTime != null && (now.getTime() - finishTime) < FINISHED_GRACE_MS;
-    const isLiveOrPending = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
-    const shouldRefresh = isLiveOrPending || withinGracePeriod;
-
-    if (isStale && shouldRefresh) {
-      try {
-        await refreshMatchData(room.fixtureId, room.homeTeamId, room.awayTeamId);
-        // Re-read cache after refresh
-        matchCache = await prisma.matchCache.findUnique({
-          where: { fixtureId: room.fixtureId },
-        });
-      } catch (apiError) {
-        console.error('API-Football fetch failed, using cached data:', apiError);
-      }
-    }
+    const matchCache = await refreshMatchDataIfStale(room.fixtureId);
 
     // Fetch this room's leaderboard
     const updatedRoom = await prisma.room.findUnique({
@@ -210,7 +40,6 @@ export async function GET(
     const kickoffTime = new Date(room.matchDate).getTime();
     const teamsLocked = Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS;
 
-    // Identify current player for global leaderboard
     const cookieStore = cookies();
     const sessionToken = getSessionToken(cookieStore.get('livev_session')?.value, params.code);
     const currentPlayer = sessionToken && updatedRoom

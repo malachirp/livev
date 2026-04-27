@@ -26,12 +26,12 @@ export default function PickTeamPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [hadExistingPicks, setHadExistingPicks] = useState(false);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
-  const lineupPollRef = useRef<NodeJS.Timeout | null>(null);
   const fixtureIdRef = useRef<number | null>(null);
 
   useEffect(() => { track('page_view', { entry_type: 'shared_link' }); }, []);
 
   const squadsUrlRef = useRef<string | null>(null);
+  const kickoffMsRef = useRef<number | null>(null);
 
   // Poll for lineup updates when close to kickoff
   const refreshSquads = useCallback(async () => {
@@ -43,18 +43,13 @@ export default function PickTeamPage() {
       if (squadsData.players) {
         setPlayers(squadsData.players);
       }
-      if (squadsData.hasLineups && !hasLineups) {
+      if (squadsData.hasLineups) {
         setHasLineups(true);
-        // Stop polling — we got the lineups
-        if (lineupPollRef.current) {
-          clearInterval(lineupPollRef.current);
-          lineupPollRef.current = null;
-        }
       }
     } catch {
       // Silently fail on background refresh
     }
-  }, [hasLineups]);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -70,6 +65,7 @@ export default function PickTeamPage() {
 
         setRoom(roomData.room);
         fixtureIdRef.current = roomData.room.fixtureId;
+        kickoffMsRef.current = new Date(roomData.room.matchDate).getTime();
 
         // Redirect back if teams are already locked (5 min before kickoff)
         if (roomData.room.teamsLocked) {
@@ -110,14 +106,6 @@ export default function PickTeamPage() {
           setHasLineups(squadsData.hasLineups || false);
         }
 
-        // Start polling for lineups if within 90 min of kickoff and lineups not yet available
-        const kickoff = new Date(roomData.room.matchDate).getTime();
-        const msUntilKickoff = kickoff - Date.now();
-        if (msUntilKickoff <= 90 * 60 * 1000 && msUntilKickoff > 0 && !hasLineups) {
-          // Poll every 2 minutes for lineup release
-          lineupPollRef.current = setInterval(refreshSquads, 2 * 60 * 1000);
-        }
-
         setLoading(false);
       } catch (err: any) {
         setError(err.message || 'Failed to load');
@@ -126,11 +114,43 @@ export default function PickTeamPage() {
     }
 
     load();
+  }, [code, router]);
+
+  // Lineup polling lifecycle — runs independently of initial load so it kicks
+  // in the moment we cross into the 90-min window, even if the user opened
+  // the picker hours before kickoff.
+  useEffect(() => {
+    if (hasLineups || !room) return;
+
+    const kickoff = kickoffMsRef.current;
+    if (!kickoff) return;
+
+    const NINETY_MIN = 90 * 60 * 1000;
+    const POLL_INTERVAL = 60_000; // 60s — matches server null-lineup TTL so we catch release fast
+
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let startTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const startPolling = () => {
+      // Refresh once now, then on an interval
+      refreshSquads();
+      pollTimer = setInterval(refreshSquads, POLL_INTERVAL);
+    };
+
+    const msUntilWindow = (kickoff - NINETY_MIN) - Date.now();
+    if (msUntilWindow <= 0) {
+      // Already inside the window
+      startPolling();
+    } else {
+      // Wait until we cross into the window, then start
+      startTimer = setTimeout(startPolling, msUntilWindow);
+    }
 
     return () => {
-      if (lineupPollRef.current) clearInterval(lineupPollRef.current);
+      if (pollTimer) clearInterval(pollTimer);
+      if (startTimer) clearTimeout(startTimer);
     };
-  }, [code, refreshSquads]);
+  }, [hasLineups, room, refreshSquads]);
 
   const handleSubmit = async (picks: PickData[], captainSlot: number) => {
     setSubmitting(true);
