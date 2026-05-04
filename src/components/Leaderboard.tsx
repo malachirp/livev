@@ -144,7 +144,7 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
               )}
 
               {/* Host remove button */}
-              {isHost && !player.isCreator && onRemovePlayer && (
+              {isHost && !player.isCreator && !teamsLocked && onRemovePlayer && (
                 <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); onRemovePlayer(player.id, player.displayName); }}
