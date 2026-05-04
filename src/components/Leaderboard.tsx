@@ -14,7 +14,9 @@ interface Props {
   homeTeamName?: string;
   awayTeamName?: string;
   teamsLocked?: boolean;
+  isHost?: boolean;
   onRename?: () => void;
+  onRemovePlayer?: (playerId: string, displayName: string) => void;
 }
 
 function getDominantTeamId(picks: PlayerData['picks']): number | null {
@@ -25,7 +27,7 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
   return Number(sorted[0][0]);
 }
 
-export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, onRename }: Props) {
+export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, isHost, onRename, onRemovePlayer }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -139,6 +141,19 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
                 >
                   <path d="M6 9l6 6 6-6" />
                 </svg>
+              )}
+
+              {/* Host remove button */}
+              {isHost && !player.isCreator && onRemovePlayer && (
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); onRemovePlayer(player.id, player.displayName); }}
+                  className="ml-1 flex-shrink-0 text-white/15 hover:text-live-red/60 transition-colors p-0.5"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </span>
               )}
             </button>
 

@@ -34,7 +34,7 @@ interface GlobalLeaderboardData {
 
 interface RoomResponse {
   room: RoomData & { teamsLocked: boolean; lockTime: string };
-  currentPlayer: { id: string; displayName: string; hasPicks: boolean } | null;
+  currentPlayer: { id: string; displayName: string; isCreator: boolean; hasPicks: boolean } | null;
   match: { status: string; homeScore: number | null; awayScore: number | null; minute: number | null };
   globalLeaderboard: GlobalLeaderboardData;
 }
@@ -81,6 +81,10 @@ export default function LiveRoomPage() {
   const [renameName, setRenameName] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+
+  // Remove player state
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   // Drag-to-dismiss for join bottom sheet
   const joinSheetRef = useRef<HTMLDivElement>(null);
@@ -259,7 +263,7 @@ export default function LiveRoomPage() {
       }
 
       track('game_joined', { code });
-      setCurrentPlayer({ id: data.playerId, displayName: joinName.trim(), hasPicks: false });
+      setCurrentPlayer({ id: data.playerId, displayName: joinName.trim(), isCreator: false, hasPicks: false });
       setShowJoin(false);
 
       // Redirect to pick team
@@ -295,6 +299,27 @@ export default function LiveRoomPage() {
       setRenameError(err.message);
       setRenaming(false);
     }
+  };
+
+  const handleRemovePlayer = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
+    try {
+      const res = await fetch(`/api/rooms/${code}/kick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: removeTarget.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove player');
+      }
+      setLeaderboard(prev => prev.filter(p => p.id !== removeTarget.id));
+      setRemoveTarget(null);
+    } catch {
+      // Silently fail — next poll will reconcile
+    }
+    setRemoving(false);
   };
 
   if (loading) {
@@ -429,6 +454,7 @@ export default function LiveRoomPage() {
         <Leaderboard
           players={leaderboard}
           currentPlayerId={currentPlayer?.id}
+          isHost={!!currentPlayer?.isCreator}
           homeTeamId={room.homeTeamId}
           awayTeamId={room.awayTeamId}
           homeTeamName={room.homeTeamName}
@@ -439,6 +465,7 @@ export default function LiveRoomPage() {
             setRenameError(null);
             setShowRename(true);
           }}
+          onRemovePlayer={(id, name) => setRemoveTarget({ id, name })}
         />
       ) : (
         <GlobalLeaderboard
@@ -590,6 +617,35 @@ export default function LiveRoomPage() {
                 }`}
               >
                 {renaming ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Remove player confirmation */}
+      {removeTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
+            onClick={() => !removing && setRemoveTarget(null)}
+          />
+          <div className="relative bg-navy border border-white/10 rounded-2xl p-6 mx-6 w-full max-w-xs text-center animate-fade-in">
+            <p className="text-sm text-white font-bold mb-1">Remove {removeTarget.name}?</p>
+            <p className="text-xs text-white/40 mb-5">Their picks will be deleted.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRemoveTarget(null)}
+                disabled={removing}
+                className="flex-1 py-3 rounded-xl text-sm font-bold bg-charcoal text-white/60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemovePlayer}
+                disabled={removing}
+                className="flex-1 py-3 rounded-xl text-sm font-bold bg-live-red/20 text-live-red active:scale-[0.98] transition-all"
+              >
+                {removing ? 'Removing...' : 'Remove'}
               </button>
             </div>
           </div>
