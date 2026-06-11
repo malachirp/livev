@@ -48,6 +48,8 @@ interface LiveResponse {
     events: ApiFixtureEvent[];
   };
   teamsLocked: boolean;
+  matchDate?: string;
+  lockTime?: string;
   leaderboard: PlayerData[];
   globalLeaderboard: GlobalLeaderboardData;
 }
@@ -159,6 +161,14 @@ export default function LiveRoomPage() {
       if (data.match.events) setEvents(data.match.events);
       if (data.teamsLocked !== undefined) setTeamsLocked(data.teamsLocked);
       if (data.globalLeaderboard) setGlobalLeaderboard(data.globalLeaderboard);
+      // Kickoff can move (rain delay etc.) — follow the new time so the lock
+      // countdown and poll cadence stay correct without a reload
+      if (data.lockTime) setLockTime(data.lockTime);
+      if (data.matchDate) {
+        setRoom(prev =>
+          prev && prev.matchDate !== data.matchDate ? { ...prev, matchDate: data.matchDate! } : prev
+        );
+      }
     } catch {
       // Silently fail on poll errors
     }

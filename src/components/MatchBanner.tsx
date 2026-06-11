@@ -46,7 +46,8 @@ export default function MatchBanner({
     : `${formatMatchDate(matchDate)}, ${formatKickoffTime(matchDate)}`;
   const live = isMatchLive(status);
   const finished = isMatchFinished(status);
-  const notStarted = isMatchNotStarted(status);
+  const delayed = status === 'PST';
+  const notStarted = isMatchNotStarted(status) || delayed;
 
   return (
     <div className="relative overflow-hidden rounded-2xl mx-4 mt-3">
@@ -116,7 +117,15 @@ export default function MatchBanner({
         </div>
       )}
 
-      <div className={`relative z-10 flex items-center justify-between px-5 py-6 ${(live || finished || status === 'HT') ? 'pt-3' : 'pt-6'}`}>
+      {delayed && (
+        <div className="relative z-10 flex justify-center pt-3">
+          <span className="text-xs font-bold text-points-gold uppercase bg-points-gold/10 backdrop-blur-sm px-3 py-1 rounded-full">
+            Delayed
+          </span>
+        </div>
+      )}
+
+      <div className={`relative z-10 flex items-center justify-between px-5 py-6 ${(live || finished || status === 'HT' || delayed) ? 'pt-3' : 'pt-6'}`}>
         {/* Home */}
         <div className="flex flex-col items-center gap-2 flex-1">
           {homeTeamLogo && (

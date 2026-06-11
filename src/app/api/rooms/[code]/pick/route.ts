@@ -32,8 +32,9 @@ export async function POST(
     // Editing window closes 5 minutes before kickoff
     const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
 
-    // Allow picks only when match hasn't started (NS or TBD)
-    if (matchCache && !['NS', 'TBD'].includes(matchCache.status)) {
+    // Allow picks only when match hasn't started (NS, TBD, or PST — a rain
+    // delay sets PST and moves kickoff, which reopens the pick window)
+    if (matchCache && !['NS', 'TBD', 'PST'].includes(matchCache.status)) {
       return NextResponse.json(
         { error: 'Cannot pick team after match has started' },
         { status: 400 }

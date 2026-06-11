@@ -35,9 +35,12 @@ export async function GET(
 
     const events = (matchCache?.events as any[]) || [];
 
-    // Teams are revealed 5 minutes before kickoff
+    // Teams are revealed 5 minutes before kickoff.
+    // Use the post-refresh matchDate — it may have just been synced if the
+    // fixture was delayed (rain etc.), which reopens the pick window.
+    const matchDate = updatedRoom?.matchDate ?? room.matchDate;
     const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
-    const kickoffTime = new Date(room.matchDate).getTime();
+    const kickoffTime = new Date(matchDate).getTime();
     const teamsLocked = Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS;
 
     const cookieStore = cookies();
@@ -61,6 +64,8 @@ export async function GET(
         events,
       },
       teamsLocked,
+      matchDate: matchDate.toISOString(),
+      lockTime: new Date(kickoffTime - LOCK_BEFORE_KICKOFF_MS).toISOString(),
       leaderboard: updatedRoom?.players.map(p => ({
         id: p.id,
         displayName: p.displayName,

@@ -41,6 +41,20 @@ async function refreshMatchData(fixtureId: number) {
     const extra = fixture.fixture.status.extra ?? 0;
     const minute = elapsed + extra || null;
 
+    // Sync room kickoff time with the API. Rain delays / postponements move
+    // fixture.date — if we don't follow it, teams lock 5 min before the
+    // ORIGINAL kickoff and the pick window never reopens.
+    const apiKickoff = new Date(fixture.fixture.date);
+    if (!isNaN(apiKickoff.getTime())) {
+      const updated = await prisma.room.updateMany({
+        where: { fixtureId, NOT: { matchDate: apiKickoff } },
+        data: { matchDate: apiKickoff },
+      });
+      if (updated.count > 0) {
+        console.log(`[Live] Fixture ${fixtureId} kickoff moved to ${apiKickoff.toISOString()} — synced ${updated.count} room(s)`);
+      }
+    }
+
     const isNowFinished = FINISHED_STATUSES.has(status);
     const wasNotFinished = !prevStatus || !FINISHED_STATUSES.has(prevStatus);
     if (isNowFinished && wasNotFinished) {
@@ -162,7 +176,11 @@ export async function refreshMatchDataIfStale(fixtureId: number) {
   }
   const finishTime = finishedAt.get(fixtureId);
   const withinGracePeriod = !!isFinished && finishTime != null && (now - finishTime) < FINISHED_GRACE_MS;
-  const isLiveOrPending = !matchCache || ['NS', 'TBD', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
+  // PST (postponed/delayed) is included: rain delays set PST temporarily and
+  // the match later kicks off — if we stop refreshing on PST the app freezes
+  // and never sees the restart. Refreshes are client-poll driven, so a
+  // long-term postponement costs nothing once nobody has the room open.
+  const isLiveOrPending = !matchCache || ['NS', 'TBD', 'PST', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
   const shouldRefresh = isLiveOrPending || withinGracePeriod;
 
   if (isStale && shouldRefresh) {
