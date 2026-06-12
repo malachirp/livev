@@ -12,6 +12,7 @@ import { isMatchLive, isMatchFinished } from '@/types';
 import type { RoomData, PlayerData, ApiFixtureEvent, PickSlot } from '@/types';
 import HelpButton from '@/components/HelpButton';
 import HomeButton from '@/components/HomeButton';
+import NextMatchCTA from '@/components/NextMatchCTA';
 import { track } from '@/lib/track';
 
 interface GlobalTeamEntry {
@@ -33,7 +34,7 @@ interface GlobalLeaderboardData {
 
 interface RoomResponse {
   room: RoomData & { teamsLocked: boolean; lockTime: string };
-  currentPlayer: { id: string; displayName: string; hasPicks: boolean } | null;
+  currentPlayer: { id: string; displayName: string; isCreator: boolean; hasPicks: boolean } | null;
   match: { status: string; homeScore: number | null; awayScore: number | null; minute: number | null };
   globalLeaderboard: GlobalLeaderboardData;
 }
@@ -251,7 +252,7 @@ export default function LiveRoomPage() {
       }
 
       track('game_joined', { code });
-      setCurrentPlayer({ id: data.playerId, displayName: joinName.trim(), hasPicks: false });
+      setCurrentPlayer({ id: data.playerId, displayName: joinName.trim(), isCreator: false, hasPicks: false });
       setShowJoin(false);
 
       // Redirect to pick team
@@ -361,6 +362,24 @@ export default function LiveRoomPage() {
           </span>
         ) : null}
       </div>
+
+      {/* FT CTA — upcoming fixtures */}
+      {finished && (
+        <NextMatchCTA currentLeagueId={room.leagueId} />
+      )}
+
+      {/* Joiner nudge — subtle prompt for non-hosts during live play */}
+      {teamsLocked && !finished && !currentPlayer?.isCreator && isInGame && (
+        <div className="px-4 pt-1 text-center">
+          <a
+            href="/"
+            onClick={() => track('nudge_create_clicked', { source: 'in_game' })}
+            className="text-[11px] text-white/30 hover:text-accent transition-colors"
+          >
+            Want to host your own game? <span className="text-accent/60 font-semibold">Create one</span>
+          </a>
+        </div>
+      )}
 
       {/* Friends / Global toggle */}
       <div className="px-4 pt-2 pb-1">
