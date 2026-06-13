@@ -112,6 +112,17 @@ export default function CreateGamePage() {
       .then(data => {
         setData(data);
         setLoading(false);
+
+        // Deep-link: /?fixture=ID auto-opens the create sheet
+        const fixtureParam = new URLSearchParams(window.location.search).get('fixture');
+        if (fixtureParam) {
+          const fixtureId = parseInt(fixtureParam, 10);
+          const match = (data.fixtures as ApiFixture[]).find(f => f.fixture.id === fixtureId);
+          if (match) {
+            setSelectedFixture(match);
+            track('deep_link_fixture', { fixtureId });
+          }
+        }
       })
       .catch((err) => {
         setError(err.message || 'Failed to load fixtures');
