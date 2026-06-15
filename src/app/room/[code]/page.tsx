@@ -216,15 +216,26 @@ export default function LiveRoomPage() {
     };
   }, [room, match.status, pollLive]);
 
-  // When tab becomes visible again, poll immediately instead of waiting for next interval
+  // When tab becomes visible again, poll immediately instead of waiting for next interval.
+  // Also handle bfcache restores (pageshow with persisted=true) which may not fire
+  // visibilitychange on all browsers.
   useEffect(() => {
     function handleVisibility() {
       if (document.visibilityState === 'visible' && room) {
         pollLive();
       }
     }
+    function handlePageShow(e: PageTransitionEvent) {
+      if (e.persisted && room) {
+        pollLive();
+      }
+    }
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, [room, pollLive]);
 
   // Countdown timer to lock time

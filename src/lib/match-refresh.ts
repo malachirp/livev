@@ -167,21 +167,18 @@ export async function refreshMatchDataIfStale(fixtureId: number) {
   const isStale = !matchCache || (now - matchCache.updatedAt.getTime()) > LIVE_CACHE_TTL_MS;
 
   const isFinished = matchCache && FINISHED_STATUSES.has(matchCache.status);
-  // Seed finishedAt from DB if server restarted after match ended.
-  // If the match has been finished for a while and we just don't know when it
-  // started, fall back to "as soon as we noticed" — so the grace can still
-  // expire even on a fresh server.
-  if (isFinished && !finishedAt.has(fixtureId) && matchCache) {
+  // First time this server process sees a finished match — always do one
+  // refresh so points are recalculated even if the grace window (based on
+  // matchCache.updatedAt) has already expired (e.g. server restarted hours
+  // after FT and nobody polled during the original grace window).
+  const firstTimeSeenFinished = !!isFinished && !finishedAt.has(fixtureId);
+  if (firstTimeSeenFinished && matchCache) {
     finishedAt.set(fixtureId, matchCache.updatedAt.getTime());
   }
   const finishTime = finishedAt.get(fixtureId);
   const withinGracePeriod = !!isFinished && finishTime != null && (now - finishTime) < FINISHED_GRACE_MS;
-  // PST (postponed/delayed) is included: rain delays set PST temporarily and
-  // the match later kicks off — if we stop refreshing on PST the app freezes
-  // and never sees the restart. Refreshes are client-poll driven, so a
-  // long-term postponement costs nothing once nobody has the room open.
   const isLiveOrPending = !matchCache || ['NS', 'TBD', 'PST', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE'].includes(matchCache.status);
-  const shouldRefresh = isLiveOrPending || withinGracePeriod;
+  const shouldRefresh = isLiveOrPending || withinGracePeriod || firstTimeSeenFinished;
 
   if (isStale && shouldRefresh) {
     try {
