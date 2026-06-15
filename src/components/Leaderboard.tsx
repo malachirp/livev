@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import type { PlayerData } from '@/types';
 import { getTeamColours } from '@/lib/team-colours';
 import TeamSheet from './TeamSheet';
@@ -29,34 +29,6 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
 
 export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, isHost, onRename, onRemovePlayer }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [hintId, setHintId] = useState<string | null>(null);
-  const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => { if (hintTimerRef.current) clearTimeout(hintTimerRef.current); }, []);
-
-  function handleRowTap(player: PlayerData, removable: boolean, picksVisible: boolean, isExpanded: boolean) {
-    const now = Date.now();
-    const isDoubleTap = lastTapRef.current.id === player.id && now - lastTapRef.current.time < 350;
-    lastTapRef.current = { id: player.id, time: now };
-
-    // Host double-taps a player row to remove them
-    if (removable && isDoubleTap) {
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-      setHintId(null);
-      onRemovePlayer!(player.id, player.displayName);
-      return;
-    }
-
-    if (picksVisible) setExpandedId(isExpanded ? null : player.id);
-
-    // Flash a hint so the double-tap-to-remove gesture is discoverable
-    if (removable) {
-      setHintId(player.id);
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-      hintTimerRef.current = setTimeout(() => setHintId(null), 2000);
-    }
-  }
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
 
@@ -94,19 +66,11 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
         const dominantTeamId = picksVisible ? getDominantTeamId(player.picks) : null;
         const dominantName = dominantTeamId === homeTeamId ? homeTeamName : dominantTeamId === awayTeamId ? awayTeamName : undefined;
         const dominantColour = dominantTeamId ? getTeamColours(dominantTeamId, dominantName).primary : null;
-        const removable = !!(isHost && !player.isCreator && !teamsLocked && onRemovePlayer);
 
         return (
-          <div key={player.id} className="animate-fade-in relative">
-            {hintId === player.id && (
-              <div className="absolute -top-2 right-3 z-20 animate-flash-hint pointer-events-none">
-                <span className="text-[9px] font-bold text-live-red bg-navy border border-live-red/40 px-2 py-1 rounded-full shadow-lg whitespace-nowrap">
-                  Double tap to remove
-                </span>
-              </div>
-            )}
+          <div key={player.id} className="animate-fade-in">
             <button
-              onClick={() => handleRowTap(player, removable, picksVisible, isExpanded)}
+              onClick={() => picksVisible && setExpandedId(isExpanded ? null : player.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
                 isExpanded ? 'ring-1 ring-accent/20' : 'hover:brightness-110'
               }`}

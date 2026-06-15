@@ -39,6 +39,15 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Flashing "double tap to change" prompt — shown when a filled shirt is tapped once
+  const [changeHint, setChangeHint] = useState(0);
+  const changeHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashChangeHint = () => {
+    setChangeHint(k => k + 1);
+    if (changeHintTimerRef.current) clearTimeout(changeHintTimerRef.current);
+    changeHintTimerRef.current = setTimeout(() => setChangeHint(0), 2000);
+  };
+
   // Drag-to-dismiss for player selector sheet
   const selectorSheetRef = useRef<HTMLDivElement>(null);
   const selectorDragStartY = useRef<number | null>(null);
@@ -93,7 +102,10 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
   }, [existingPicks, existingCaptainSlot]);
 
   useEffect(() => {
-    return () => clearPendingTap();
+    return () => {
+      clearPendingTap();
+      if (changeHintTimerRef.current) clearTimeout(changeHintTimerRef.current);
+    };
   }, []);
 
   const getTeamCount = useCallback((teamId: number) => {
@@ -197,6 +209,14 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
 
       {/* Pitch - tighter aspect ratio to fit on screen */}
       <div className="pitch-bg rounded-2xl mx-3 relative" style={{ paddingBottom: '105%' }}>
+        {/* Flashing "double tap to change" prompt */}
+        {changeHint > 0 && (
+          <div key={changeHint} className="absolute top-2 left-1/2 -translate-x-1/2 z-30 animate-flash-hint pointer-events-none">
+            <span className="text-[10px] font-bold text-white bg-navy/90 border border-white/15 px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
+              Double tap to change player
+            </span>
+          </div>
+        )}
         {/* Pitch markings */}
         <div className="absolute inset-0">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/10" />
@@ -344,6 +364,8 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
         key={slot.index}
         onClick={() => {
           if (pick) {
+            // Nudge users towards the double-tap-to-change gesture
+            flashChangeHint();
             // Delay captain toggle so a double-tap can cancel it (double-tap = change player)
             clearPendingTap();
             tapTimeoutRef.current = setTimeout(() => {

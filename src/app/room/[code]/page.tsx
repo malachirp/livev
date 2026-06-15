@@ -71,7 +71,7 @@ export default function LiveRoomPage() {
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'lineup'>('friends');
+  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'stats'>('friends');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
 
   // Join form state
@@ -462,14 +462,14 @@ export default function LiveRoomPage() {
             Global
           </button>
           <button
-            onClick={() => setLeaderboardView('lineup')}
+            onClick={() => setLeaderboardView('stats')}
             className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'lineup'
+              leaderboardView === 'stats'
                 ? 'bg-accent/20 text-accent'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Lineup
+            Stats
           </button>
         </div>
       </div>

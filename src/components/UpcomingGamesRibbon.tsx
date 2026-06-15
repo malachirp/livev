@@ -50,7 +50,7 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
   return (
     <div className="px-4 pt-3 pb-1">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Create a Game</h3>
+        <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Host a Game</h3>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">

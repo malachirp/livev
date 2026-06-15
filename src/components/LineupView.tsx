@@ -90,12 +90,11 @@ export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName,
 
     return (
       <div className="flex-1 min-w-0">
-        {/* Team header */}
-        <div className="flex items-center gap-2 px-2 pb-2 mb-1">
+        {/* Team header — logo only, centered */}
+        <div className="flex items-center justify-center pb-2 mb-1">
           {team.teamLogo && (
-            <img src={team.teamLogo} alt="" className="w-5 h-5 object-contain" />
+            <img src={team.teamLogo} alt={team.teamName} className="w-7 h-7 object-contain" />
           )}
-          <span className="text-[11px] font-bold text-white/70 truncate">{team.teamName}</span>
         </div>
 
         {/* Starters */}
