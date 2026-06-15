@@ -197,7 +197,7 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
       {/* Hints */}
       <div className="text-[10px] text-white/30 text-center px-4 pb-2 leading-relaxed">
         <p>Tap a player to make them captain (C) for 2x points</p>
-        <p>Double tap to change player</p>
+        <p>Double tap to clear player</p>
         {hasLineups ? (
           <p>
             <span className="text-accent/50 font-bold">S</span> - starter, <span className="text-white/40 font-bold">B</span> - bench
@@ -209,12 +209,14 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
 
       {/* Pitch - tighter aspect ratio to fit on screen */}
       <div className="pitch-bg rounded-2xl mx-3 relative" style={{ paddingBottom: '105%' }}>
-        {/* Flashing "double tap to change" prompt */}
+        {/* Flashing "double tap to clear" prompt */}
         {changeHint > 0 && (
-          <div key={changeHint} className="absolute top-2 left-1/2 -translate-x-1/2 z-30 animate-flash-hint pointer-events-none">
-            <span className="text-[10px] font-bold text-white bg-navy/90 border border-white/15 px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
-              Double tap to change player
-            </span>
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+            <div key={changeHint} className="animate-flash-hint">
+              <span className="text-[10px] font-bold text-white bg-navy/90 border border-white/15 px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
+                Double tap to clear player
+              </span>
+            </div>
           </div>
         )}
         {/* Pitch markings */}
@@ -378,9 +380,11 @@ export default function PitchPicker({ players, homeTeamId, awayTeamId, homeTeamN
           }
         }}
         onDoubleClick={() => {
+          // Double tap clears the pick, returning the slot to empty
           clearPendingTap();
-          setActiveSlot(slotIndex);
-          setSearchQuery('');
+          const newPicks = [...picks];
+          newPicks[slotIndex] = null;
+          setPicks(newPicks);
         }}
         className={`flex flex-col items-center transition-all active:scale-95 ${
           activeSlot === slotIndex ? 'scale-110' : ''
