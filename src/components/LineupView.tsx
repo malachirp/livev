@@ -21,8 +21,9 @@ interface TeamSquad {
   players: SquadPlayer[];
 }
 
-interface SquadsData {
+interface LineupData {
   available: boolean;
+  matchStarted: boolean;
   home: TeamSquad | null;
   away: TeamSquad | null;
 }
@@ -35,23 +36,21 @@ interface Props {
   awayTeamName: string;
 }
 
-const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
-
-export default function SquadsView({ code, homeTeamId, awayTeamId, homeTeamName, awayTeamName }: Props) {
-  const [data, setData] = useState<SquadsData | null>(null);
+export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName, awayTeamName }: Props) {
+  const [data, setData] = useState<LineupData | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    function fetchSquads() {
+    function fetchLineups() {
       fetch(`/api/rooms/${code}/squads`)
         .then(res => res.json())
         .then(d => setData(d))
         .catch(() => {});
     }
 
-    fetchSquads();
-    pollRef.current = setInterval(fetchSquads, 60_000);
+    fetchLineups();
+    pollRef.current = setInterval(fetchLineups, 60_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [code]);
 
@@ -74,11 +73,13 @@ export default function SquadsView({ code, homeTeamId, awayTeamId, homeTeamName,
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </div>
-        <p className="text-white/60 text-sm font-bold">Squads not yet announced</p>
-        <p className="text-white/25 text-xs mt-1">Lineups appear ~1 hour before kick-off</p>
+        <p className="text-white/60 text-sm font-bold">Lineups not available yet</p>
+        <p className="text-white/25 text-xs mt-1">They&apos;re announced ~1 hour before kick-off</p>
       </div>
     );
   }
+
+  const showPoints = data.matchStarted;
 
   function renderTeamColumn(team: TeamSquad | null, teamId: number, teamName: string) {
     if (!team) return <div className="flex-1" />;
@@ -99,7 +100,7 @@ export default function SquadsView({ code, homeTeamId, awayTeamId, homeTeamName,
 
         {/* Starters */}
         {starters.map(p => (
-          <PlayerRow key={p.id} player={p} colours={colours} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
+          <PlayerRow key={p.id} player={p} colours={colours} showPoints={showPoints} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
         ))}
 
         {bench.length > 0 && (
@@ -108,7 +109,7 @@ export default function SquadsView({ code, homeTeamId, awayTeamId, homeTeamName,
               <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider">Bench</span>
             </div>
             {bench.map(p => (
-              <PlayerRow key={p.id} player={p} colours={colours} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
+              <PlayerRow key={p.id} player={p} colours={colours} showPoints={showPoints} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
             ))}
           </>
         )}
@@ -126,16 +127,18 @@ export default function SquadsView({ code, homeTeamId, awayTeamId, homeTeamName,
   );
 }
 
-function PlayerRow({ player, colours, expanded, onToggle }: {
+function PlayerRow({ player, colours, showPoints, expanded, onToggle }: {
   player: SquadPlayer;
   colours: { primary: string; secondary: string };
+  showPoints: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const canExpand = showPoints && !!player.breakdown;
   return (
     <div>
       <button
-        onClick={() => player.breakdown && onToggle()}
+        onClick={() => canExpand && onToggle()}
         className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
       >
         <span
@@ -147,12 +150,14 @@ function PlayerRow({ player, colours, expanded, onToggle }: {
         <span className="text-[11px] font-semibold text-white/70 flex-1 truncate text-left">
           {player.name.split(' ').pop()}
         </span>
-        <span className={`text-[11px] font-black flex-shrink-0 ${
-          player.points > 0 ? 'text-accent' : player.points < 0 ? 'text-live-red' : 'text-white/20'
-        }`}>
-          {player.points > 0 ? '+' : ''}{player.points}
-        </span>
-        {player.breakdown && (
+        {showPoints && (
+          <span className={`text-[11px] font-black flex-shrink-0 ${
+            player.points > 0 ? 'text-accent' : player.points < 0 ? 'text-live-red' : 'text-white/20'
+          }`}>
+            {player.points > 0 ? '+' : ''}{player.points}
+          </span>
+        )}
+        {canExpand && (
           <svg
             width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -162,7 +167,7 @@ function PlayerRow({ player, colours, expanded, onToggle }: {
           </svg>
         )}
       </button>
-      {expanded && player.breakdown && (
+      {expanded && canExpand && player.breakdown && (
         <div className="ml-1 mr-0">
           <PointsBreakdown breakdown={player.breakdown} />
         </div>

@@ -43,7 +43,7 @@ export async function GET(
     const lineups: ApiLineupResponse[] | null = await getFixtureLineups(room.fixtureId).catch(() => null);
 
     if (!lineups || lineups.length === 0) {
-      return NextResponse.json({ available: false, home: null, away: null });
+      return NextResponse.json({ available: false, matchStarted: false, home: null, away: null });
     }
 
     const status = matchCache?.status || 'NS';
@@ -83,9 +83,12 @@ export async function GET(
       processPlayers(lineup.startXI || [], 'starter');
       processPlayers(lineup.substitutes || [], 'bench');
 
+      const positionOrder: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
       players.sort((a, b) => {
         if (a.lineupStatus !== b.lineupStatus) return a.lineupStatus === 'starter' ? -1 : 1;
-        return b.points - a.points;
+        // Once underway, surface top performers; pre-match keep natural team-sheet order
+        if (matchStarted) return b.points - a.points;
+        return positionOrder[a.position] - positionOrder[b.position];
       });
 
       return { teamId, teamName, teamLogo: teamLogo || lineup.team.logo, players };
@@ -101,7 +104,7 @@ export async function GET(
       ? buildTeamSquad(awayLineup, room.awayTeamId, room.awayTeamName, room.awayTeamLogo || '')
       : null;
 
-    return NextResponse.json({ available: true, home, away });
+    return NextResponse.json({ available: true, matchStarted, home, away });
   } catch (error) {
     console.error('Failed to fetch squads:', error);
     return NextResponse.json(

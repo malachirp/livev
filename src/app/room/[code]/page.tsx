@@ -14,7 +14,7 @@ import HelpButton from '@/components/HelpButton';
 import ContactButton from '@/components/ContactButton';
 import HomeButton from '@/components/HomeButton';
 import UpcomingGamesRibbon from '@/components/UpcomingGamesRibbon';
-import SquadsView from '@/components/SquadsView';
+import LineupView from '@/components/LineupView';
 import { track } from '@/lib/track';
 
 interface GlobalTeamEntry {
@@ -71,7 +71,7 @@ export default function LiveRoomPage() {
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'squads'>('friends');
+  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'lineup'>('friends');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
 
   // Join form state
@@ -462,14 +462,14 @@ export default function LiveRoomPage() {
             Global
           </button>
           <button
-            onClick={() => setLeaderboardView('squads')}
+            onClick={() => setLeaderboardView('lineup')}
             className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'squads'
+              leaderboardView === 'lineup'
                 ? 'bg-accent/20 text-accent'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Squads
+            Lineup
           </button>
         </div>
       </div>
@@ -506,7 +506,7 @@ export default function LiveRoomPage() {
           matchStarted={live || finished}
         />
       ) : (
-        <SquadsView
+        <LineupView
           code={code}
           homeTeamId={room.homeTeamId}
           awayTeamId={room.awayTeamId}

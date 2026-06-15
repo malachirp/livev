@@ -22,6 +22,7 @@ const config: Config = {
         'slide-up': 'slide-up 0.3s ease-out',
         'fade-in': 'fade-in 0.2s ease-out',
         'score-pop': 'score-pop 0.4s ease-out',
+        'flash-hint': 'flash-hint 2s ease-in-out forwards',
       },
       keyframes: {
         'pulse-live': {
@@ -40,6 +41,12 @@ const config: Config = {
           '0%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.2)' },
           '100%': { transform: 'scale(1)' },
+        },
+        'flash-hint': {
+          '0%': { opacity: '0', transform: 'translateY(2px)' },
+          '15%': { opacity: '1', transform: 'translateY(0)' },
+          '75%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(0)' },
         },
       },
     },
