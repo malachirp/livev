@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import type { PickSlot } from '@/types';
 import TeamSheet from './TeamSheet';
 
@@ -39,8 +38,6 @@ export default function GlobalLeaderboard({
   teamsLocked,
   matchStarted,
 }: Props) {
-  const [showLeaderTeam, setShowLeaderTeam] = useState(false);
-
   // Before gameplay: just show count
   if (!matchStarted) {
     return (
@@ -153,31 +150,13 @@ export default function GlobalLeaderboard({
         </div>
       )}
 
-      {/* Winning team — expandable */}
+      {/* Winning team — always visible */}
       {leaderPicksVisible && !userIsLeader && (
-        <button
-          onClick={() => setShowLeaderTeam(!showLeaderTeam)}
-          className="w-full px-4 py-3 rounded-xl transition-all hover:brightness-110"
-          style={{ background: 'rgba(30,41,59,0.4)' }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-points-gold text-sm">👑</span>
-              <span className="text-xs font-bold text-white/50">Winning team</span>
-            </div>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className={`text-white/30 transition-transform ${showLeaderTeam ? 'rotate-180' : ''}`}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+        <>
+          <div className="px-4 py-2 flex items-center gap-2">
+            <span className="text-points-gold text-sm">👑</span>
+            <span className="text-xs font-bold text-white/50">Winning team</span>
           </div>
-        </button>
-      )}
-
-      {showLeaderTeam && leaderPicksVisible && !userIsLeader && (
-        <div className="animate-slide-up -mt-2">
           <TeamSheet
             picks={leader.picks}
             homeTeamId={homeTeamId}
@@ -186,43 +165,24 @@ export default function GlobalLeaderboard({
             awayTeamName={awayTeamName}
             captainSlot={leader.captainSlot}
           />
-        </div>
+        </>
       )}
 
       {/* If user IS the leader, show their own team */}
       {leaderPicksVisible && userIsLeader && (
         <>
-          <button
-            onClick={() => setShowLeaderTeam(!showLeaderTeam)}
-            className="w-full px-4 py-3 rounded-xl transition-all hover:brightness-110"
-            style={{ background: 'rgba(0,245,160,0.06)' }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-sm">👑</span>
-                <span className="text-xs font-bold text-accent/60">Your team — the one to beat</span>
-              </div>
-              <svg
-                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                className={`text-accent/40 transition-transform ${showLeaderTeam ? 'rotate-180' : ''}`}
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </div>
-          </button>
-          {showLeaderTeam && (
-            <div className="animate-slide-up -mt-2">
-              <TeamSheet
-                picks={leader.picks}
-                homeTeamId={homeTeamId}
-                awayTeamId={awayTeamId}
-                homeTeamName={homeTeamName}
-                awayTeamName={awayTeamName}
-                captainSlot={leader.captainSlot}
-              />
-            </div>
-          )}
+          <div className="px-4 py-2 flex items-center gap-2">
+            <span className="text-accent text-sm">👑</span>
+            <span className="text-xs font-bold text-accent/60">Your team — the one to beat</span>
+          </div>
+          <TeamSheet
+            picks={leader.picks}
+            homeTeamId={homeTeamId}
+            awayTeamId={awayTeamId}
+            homeTeamName={homeTeamName}
+            awayTeamName={awayTeamName}
+            captainSlot={leader.captainSlot}
+          />
         </>
       )}
     </div>

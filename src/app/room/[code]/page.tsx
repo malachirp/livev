@@ -13,7 +13,8 @@ import type { RoomData, PlayerData, ApiFixtureEvent, PickSlot } from '@/types';
 import HelpButton from '@/components/HelpButton';
 import ContactButton from '@/components/ContactButton';
 import HomeButton from '@/components/HomeButton';
-import NextMatchCTA from '@/components/NextMatchCTA';
+import UpcomingGamesRibbon from '@/components/UpcomingGamesRibbon';
+import SquadsView from '@/components/SquadsView';
 import { track } from '@/lib/track';
 
 interface GlobalTeamEntry {
@@ -70,7 +71,7 @@ export default function LiveRoomPage() {
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global'>('friends');
+  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'squads'>('friends');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
 
   // Join form state
@@ -400,6 +401,9 @@ export default function LiveRoomPage() {
         />
       </header>
 
+      {/* Upcoming games ribbon */}
+      <UpcomingGamesRibbon currentFixtureId={room.fixtureId} />
+
       {/* Match Banner */}
       <MatchBanner
         homeTeamId={room.homeTeamId}
@@ -434,25 +438,7 @@ export default function LiveRoomPage() {
         ) : null}
       </div>
 
-      {/* FT CTA — upcoming fixtures */}
-      {finished && (
-        <NextMatchCTA currentLeagueId={room.leagueId} />
-      )}
-
-      {/* Joiner nudge — subtle prompt for non-hosts during live play */}
-      {teamsLocked && !finished && !currentPlayer?.isCreator && isInGame && (
-        <div className="px-4 pt-1 text-center">
-          <a
-            href="/"
-            onClick={() => track('nudge_create_clicked', { source: 'in_game' })}
-            className="text-[11px] text-white/30 hover:text-accent transition-colors"
-          >
-            Want to host your own game? <span className="text-accent/60 font-semibold">Create one</span>
-          </a>
-        </div>
-      )}
-
-      {/* Friends / Global toggle */}
+      {/* Friends / Global / Squads toggle */}
       <div className="px-4 pt-2 pb-1">
         <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
           <button
@@ -475,6 +461,16 @@ export default function LiveRoomPage() {
           >
             Global
           </button>
+          <button
+            onClick={() => setLeaderboardView('squads')}
+            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
+              leaderboardView === 'squads'
+                ? 'bg-accent/20 text-accent'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Squads
+          </button>
         </div>
       </div>
 
@@ -496,7 +492,7 @@ export default function LiveRoomPage() {
           }}
           onRemovePlayer={(id, name) => setRemoveTarget({ id, name })}
         />
-      ) : (
+      ) : leaderboardView === 'global' ? (
         <GlobalLeaderboard
           totalPlayers={globalLeaderboard.totalPlayers}
           totalTeams={globalLeaderboard.totalTeams}
@@ -508,6 +504,14 @@ export default function LiveRoomPage() {
           awayTeamName={room.awayTeamName}
           teamsLocked={teamsLocked}
           matchStarted={live || finished}
+        />
+      ) : (
+        <SquadsView
+          code={code}
+          homeTeamId={room.homeTeamId}
+          awayTeamId={room.awayTeamId}
+          homeTeamName={room.homeTeamName}
+          awayTeamName={room.awayTeamName}
         />
       )}
 
