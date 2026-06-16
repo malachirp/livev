@@ -36,7 +36,6 @@ export async function GET(request: Request) {
         const hc = getTeamColours(room.homeTeamId, room.homeTeamName);
         const ac = getTeamColours(room.awayTeamId, room.awayTeamName);
         const logoTop = 78;
-        const logoCenterY = logoTop + LOGO / 2;
 
         return new ImageResponse(
           (
@@ -55,13 +54,6 @@ export async function GET(request: Request) {
               <div style={{
                 position: 'absolute', right: -120, top: -80, width: 640, height: 685,
                 background: `radial-gradient(ellipse at center, ${ac.primary}40 0%, ${ac.primary}14 45%, transparent 72%)`,
-                display: 'flex',
-              }} />
-
-              {/* Soft central light seam */}
-              <div style={{
-                position: 'absolute', left: W / 2 - 60, top: 0, width: 120, height: H,
-                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.07) 0%, transparent 70%)',
                 display: 'flex',
               }} />
 
@@ -85,28 +77,22 @@ export async function GET(request: Request) {
                 }} />
               )}
 
-              {/* VS badge — clean circle on the seam */}
+              {/* Legibility band behind the wordmark */}
               <div style={{
-                position: 'absolute', left: W / 2 - 46, top: logoCenterY - 46,
-                width: 92, height: 92, borderRadius: 92,
-                background: 'rgba(8,11,20,0.82)',
-                border: '3px solid rgba(255,255,255,0.85)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
-                  VS
-                </span>
-              </div>
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'linear-gradient(180deg, transparent 28%, rgba(8,11,20,0.55) 50%, transparent 72%)',
+                display: 'flex',
+              }} />
 
-              {/* LIVE V wordmark — top centre */}
+              {/* LIVE V wordmark — giant, spanning the full width, on top of the crests */}
               <div style={{
-                position: 'absolute', top: 22, left: 0, width: '100%',
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontFamily: 'Inter', fontSize: 38, fontWeight: 900, color: 'white', letterSpacing: '-1px', lineHeight: 1 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 290, fontWeight: 900, color: 'white', letterSpacing: '-8px', lineHeight: 1 }}>
                   LIVE
                 </span>
-                <span style={{ fontFamily: 'InterItalic', fontSize: 38, fontWeight: 900, color: '#00f5a0', letterSpacing: '-1px', lineHeight: 1, fontStyle: 'italic' }}>
+                <span style={{ fontFamily: 'InterItalic', fontSize: 290, fontWeight: 900, color: '#00f5a0', letterSpacing: '-8px', lineHeight: 1, fontStyle: 'italic' }}>
                   V
                 </span>
               </div>
