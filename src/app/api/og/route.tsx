@@ -15,6 +15,12 @@ const FONTS = [
   { name: 'InterItalic', data: interBlackItalic, weight: 900 as const, style: 'italic' as const },
 ];
 
+// Canvas 1000x525 (1.9:1). Crests are deliberately huge — ~415px each — so they
+// fill the frame and read large in WhatsApp/iMessage previews.
+const W = 1000;
+const H = 525;
+const LOGO = 415;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
@@ -29,143 +35,84 @@ export async function GET(request: Request) {
       if (room) {
         const hc = getTeamColours(room.homeTeamId, room.homeTeamName);
         const ac = getTeamColours(room.awayTeamId, room.awayTeamName);
+        const logoTop = 78;
+        const logoCenterY = logoTop + LOGO / 2;
 
         return new ImageResponse(
           (
             <div style={{
               width: '100%', height: '100%', display: 'flex',
               position: 'relative', overflow: 'hidden',
-              background: '#050810',
+              background: '#080b14',
             }}>
-              {/* Home team atmospheric glow */}
+              {/* Home colour glow — left */}
               <div style={{
-                position: 'absolute', left: -60, top: -60, width: 520, height: 540,
-                background: `radial-gradient(ellipse at center, ${hc.primary}38 0%, ${hc.primary}12 40%, transparent 70%)`,
+                position: 'absolute', left: -120, top: -80, width: 640, height: 685,
+                background: `radial-gradient(ellipse at center, ${hc.primary}40 0%, ${hc.primary}14 45%, transparent 72%)`,
+                display: 'flex',
+              }} />
+              {/* Away colour glow — right */}
+              <div style={{
+                position: 'absolute', right: -120, top: -80, width: 640, height: 685,
+                background: `radial-gradient(ellipse at center, ${ac.primary}40 0%, ${ac.primary}14 45%, transparent 72%)`,
                 display: 'flex',
               }} />
 
-              {/* Away team atmospheric glow */}
+              {/* Soft central light seam */}
               <div style={{
-                position: 'absolute', right: -60, top: -60, width: 520, height: 540,
-                background: `radial-gradient(ellipse at center, ${ac.primary}38 0%, ${ac.primary}12 40%, transparent 70%)`,
+                position: 'absolute', left: W / 2 - 60, top: 0, width: 120, height: H,
+                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.07) 0%, transparent 70%)',
                 display: 'flex',
               }} />
 
-              {/* Center focal glow */}
-              <div style={{
-                position: 'absolute', left: 250, top: 60, width: 300, height: 300,
-                background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)',
-                display: 'flex',
-              }} />
-
-              {/* Upper atmosphere */}
-              <div style={{
-                position: 'absolute', left: 200, top: -80, width: 400, height: 250,
-                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.025) 0%, transparent 70%)',
-                display: 'flex',
-              }} />
-
-              {/* Diagonal light wash — left */}
-              <div style={{
-                position: 'absolute', left: 0, top: 0, width: 450, height: 420,
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.015) 0%, transparent 50%)',
-                display: 'flex',
-              }} />
-
-              {/* Diagonal light wash — right */}
-              <div style={{
-                position: 'absolute', right: 0, top: 0, width: 450, height: 420,
-                background: 'linear-gradient(225deg, rgba(255,255,255,0.015) 0%, transparent 50%)',
-                display: 'flex',
-              }} />
-
-              {/* Radiating energy lines from center */}
-              <svg width="800" height="420" viewBox="0 0 800 420" style={{ position: 'absolute', top: 0, left: 0 }}>
-                <line x1="400" y1="210" x2="-50" y2="-30" stroke="white" strokeWidth="35" opacity="0.006" />
-                <line x1="400" y1="210" x2="850" y2="-30" stroke="white" strokeWidth="35" opacity="0.006" />
-                <line x1="400" y1="210" x2="-50" y2="450" stroke="white" strokeWidth="35" opacity="0.006" />
-                <line x1="400" y1="210" x2="850" y2="450" stroke="white" strokeWidth="35" opacity="0.006" />
-                <line x1="400" y1="210" x2="-50" y2="210" stroke="white" strokeWidth="20" opacity="0.004" />
-                <line x1="400" y1="210" x2="850" y2="210" stroke="white" strokeWidth="20" opacity="0.004" />
-              </svg>
-
-              {/* Energy divider — outer aura */}
-              <div style={{
-                position: 'absolute', left: 386, top: 0, width: 28, height: 420,
-                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.04) 15%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 85%, transparent 100%)',
-                display: 'flex',
-              }} />
-
-              {/* Energy divider — mid glow */}
-              <div style={{
-                position: 'absolute', left: 393, top: 15, width: 14, height: 390,
-                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.12) 18%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.12) 82%, transparent 100%)',
-                display: 'flex',
-              }} />
-
-              {/* Energy divider — bright core */}
-              <div style={{
-                position: 'absolute', left: 398, top: 35, width: 4, height: 350,
-                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.45) 15%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.45) 85%, transparent 100%)',
-                borderRadius: 2,
-                display: 'flex',
-              }} />
-
-              {/* Center energy burst */}
-              <div style={{
-                position: 'absolute', left: 385, top: 190, width: 30, height: 40,
-                background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-                display: 'flex',
-              }} />
-
-              {/* Vignette — top/bottom */}
+              {/* Vignette */}
               <div style={{
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                background: 'linear-gradient(180deg, rgba(5,8,16,0.45) 0%, transparent 18%, transparent 82%, rgba(5,8,16,0.45) 100%)',
+                background: 'linear-gradient(180deg, rgba(8,11,20,0.55) 0%, transparent 22%, transparent 78%, rgba(8,11,20,0.65) 100%)',
                 display: 'flex',
               }} />
 
-              {/* Vignette — left/right */}
-              <div style={{
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                background: 'linear-gradient(90deg, rgba(5,8,16,0.25) 0%, transparent 12%, transparent 88%, rgba(5,8,16,0.25) 100%)',
-                display: 'flex',
-              }} />
-
-              {/* Home team logo */}
+              {/* Home crest — huge */}
               {room.homeTeamLogo && (
-                <img src={room.homeTeamLogo} width={260} height={260} style={{
-                  position: 'absolute', left: 45, top: 35,
-                  objectFit: 'contain',
+                <img src={room.homeTeamLogo} width={LOGO} height={LOGO} style={{
+                  position: 'absolute', left: 28, top: logoTop, objectFit: 'contain',
                 }} />
               )}
-
-              {/* Away team logo */}
+              {/* Away crest — huge */}
               {room.awayTeamLogo && (
-                <img src={room.awayTeamLogo} width={260} height={260} style={{
-                  position: 'absolute', left: 495, top: 35,
-                  objectFit: 'contain',
+                <img src={room.awayTeamLogo} width={LOGO} height={LOGO} style={{
+                  position: 'absolute', left: W - 28 - LOGO, top: logoTop, objectFit: 'contain',
                 }} />
               )}
 
-              {/* LIVE V badge */}
+              {/* VS badge — clean circle on the seam */}
               <div style={{
-                position: 'absolute', left: 305, top: 348,
-                width: 190, height: 58,
-                background: 'rgba(5, 8, 16, 0.92)',
-                borderRadius: 16,
+                position: 'absolute', left: W / 2 - 46, top: logoCenterY - 46,
+                width: 92, height: 92, borderRadius: 92,
+                background: 'rgba(8,11,20,0.82)',
+                border: '3px solid rgba(255,255,255,0.85)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 900, color: 'white', letterSpacing: '-0.8px', lineHeight: 1 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
+                  VS
+                </span>
+              </div>
+
+              {/* LIVE V wordmark — top centre */}
+              <div style={{
+                position: 'absolute', top: 22, left: 0, width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 38, fontWeight: 900, color: 'white', letterSpacing: '-1px', lineHeight: 1 }}>
                   LIVE
                 </span>
-                <span style={{ fontFamily: 'InterItalic', fontSize: 34, fontWeight: 900, color: '#00f5a0', letterSpacing: '-0.8px', lineHeight: 1, fontStyle: 'italic' }}>
+                <span style={{ fontFamily: 'InterItalic', fontSize: 38, fontWeight: 900, color: '#00f5a0', letterSpacing: '-1px', lineHeight: 1, fontStyle: 'italic' }}>
                   V
                 </span>
               </div>
             </div>
           ),
-          { width: 800, height: 420, fonts: FONTS },
+          { width: W, height: H, fonts: FONTS },
         );
       }
     } catch {

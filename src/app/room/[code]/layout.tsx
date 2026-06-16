@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: { code: string } })
       description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
       siteName: 'LIVE V',
       type: 'website',
-      images: [{ url: `/api/og?code=${params.code}`, width: 800, height: 420, alt: matchTitle }],
+      images: [{ url: `/api/og?code=${params.code}`, width: 1000, height: 525, alt: matchTitle }],
     },
     twitter: {
       card: 'summary',
