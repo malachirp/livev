@@ -15,9 +15,6 @@ const FONTS = [
   { name: 'InterItalic', data: interBlackItalic, weight: 900 as const, style: 'italic' as const },
 ];
 
-const BOLT = 'M 210 0 L 182 30 L 222 58 L 172 92 L 228 122 L 176 154 L 218 184 L 190 210';
-const BOLT_FILL = `${BOLT} L 400 210 L 400 0 Z`;
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
@@ -38,55 +35,137 @@ export async function GET(request: Request) {
             <div style={{
               width: '100%', height: '100%', display: 'flex',
               position: 'relative', overflow: 'hidden',
-              background: hc.primary,
+              background: '#050810',
             }}>
-              {/* Away half with lightning bolt edge */}
-              <svg width="400" height="210" viewBox="0 0 400 210" style={{ position: 'absolute', top: 0, left: 0 }}>
-                <path d={BOLT_FILL} fill={ac.primary} />
-                <path d={BOLT} stroke="rgba(255,255,255,0.08)" strokeWidth="14" fill="none" />
-                <path d={BOLT} stroke="rgba(255,255,255,0.25)" strokeWidth="5" fill="none" />
-                <path d={BOLT} stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" fill="none" />
-              </svg>
-
-              {/* Edge darkening */}
+              {/* Home team atmospheric glow */}
               <div style={{
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%)',
+                position: 'absolute', left: -60, top: -60, width: 520, height: 540,
+                background: `radial-gradient(ellipse at center, ${hc.primary}38 0%, ${hc.primary}12 40%, transparent 70%)`,
                 display: 'flex',
               }} />
 
-              {/* Home logo — big, filling left half */}
-              {room.homeTeamLogo && (
-                <img src={room.homeTeamLogo} width={160} height={160} style={{
-                  position: 'absolute', left: 12, top: 25, objectFit: 'contain',
-                }} />
-              )}
-
-              {/* Away logo — big, filling right half */}
-              {room.awayTeamLogo && (
-                <img src={room.awayTeamLogo} width={160} height={160} style={{
-                  position: 'absolute', left: 228, top: 25, objectFit: 'contain',
-                }} />
-              )}
-
-              {/* LIVE V badge — centered on the bolt */}
+              {/* Away team atmospheric glow */}
               <div style={{
-                position: 'absolute', left: 160, top: 80,
-                width: 80, height: 50,
-                background: 'rgba(15, 23, 42, 0.92)',
-                borderRadius: 12,
+                position: 'absolute', right: -60, top: -60, width: 520, height: 540,
+                background: `radial-gradient(ellipse at center, ${ac.primary}38 0%, ${ac.primary}12 40%, transparent 70%)`,
+                display: 'flex',
+              }} />
+
+              {/* Center focal glow */}
+              <div style={{
+                position: 'absolute', left: 250, top: 60, width: 300, height: 300,
+                background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)',
+                display: 'flex',
+              }} />
+
+              {/* Upper atmosphere */}
+              <div style={{
+                position: 'absolute', left: 200, top: -80, width: 400, height: 250,
+                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.025) 0%, transparent 70%)',
+                display: 'flex',
+              }} />
+
+              {/* Diagonal light wash — left */}
+              <div style={{
+                position: 'absolute', left: 0, top: 0, width: 450, height: 420,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.015) 0%, transparent 50%)',
+                display: 'flex',
+              }} />
+
+              {/* Diagonal light wash — right */}
+              <div style={{
+                position: 'absolute', right: 0, top: 0, width: 450, height: 420,
+                background: 'linear-gradient(225deg, rgba(255,255,255,0.015) 0%, transparent 50%)',
+                display: 'flex',
+              }} />
+
+              {/* Radiating energy lines from center */}
+              <svg width="800" height="420" viewBox="0 0 800 420" style={{ position: 'absolute', top: 0, left: 0 }}>
+                <line x1="400" y1="210" x2="-50" y2="-30" stroke="white" strokeWidth="35" opacity="0.006" />
+                <line x1="400" y1="210" x2="850" y2="-30" stroke="white" strokeWidth="35" opacity="0.006" />
+                <line x1="400" y1="210" x2="-50" y2="450" stroke="white" strokeWidth="35" opacity="0.006" />
+                <line x1="400" y1="210" x2="850" y2="450" stroke="white" strokeWidth="35" opacity="0.006" />
+                <line x1="400" y1="210" x2="-50" y2="210" stroke="white" strokeWidth="20" opacity="0.004" />
+                <line x1="400" y1="210" x2="850" y2="210" stroke="white" strokeWidth="20" opacity="0.004" />
+              </svg>
+
+              {/* Energy divider — outer aura */}
+              <div style={{
+                position: 'absolute', left: 386, top: 0, width: 28, height: 420,
+                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.04) 15%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 85%, transparent 100%)',
+                display: 'flex',
+              }} />
+
+              {/* Energy divider — mid glow */}
+              <div style={{
+                position: 'absolute', left: 393, top: 15, width: 14, height: 390,
+                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.12) 18%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.12) 82%, transparent 100%)',
+                display: 'flex',
+              }} />
+
+              {/* Energy divider — bright core */}
+              <div style={{
+                position: 'absolute', left: 398, top: 35, width: 4, height: 350,
+                background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.45) 15%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.45) 85%, transparent 100%)',
+                borderRadius: 2,
+                display: 'flex',
+              }} />
+
+              {/* Center energy burst */}
+              <div style={{
+                position: 'absolute', left: 385, top: 190, width: 30, height: 40,
+                background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
+                display: 'flex',
+              }} />
+
+              {/* Vignette — top/bottom */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'linear-gradient(180deg, rgba(5,8,16,0.45) 0%, transparent 18%, transparent 82%, rgba(5,8,16,0.45) 100%)',
+                display: 'flex',
+              }} />
+
+              {/* Vignette — left/right */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'linear-gradient(90deg, rgba(5,8,16,0.25) 0%, transparent 12%, transparent 88%, rgba(5,8,16,0.25) 100%)',
+                display: 'flex',
+              }} />
+
+              {/* Home team logo */}
+              {room.homeTeamLogo && (
+                <img src={room.homeTeamLogo} width={260} height={260} style={{
+                  position: 'absolute', left: 45, top: 35,
+                  objectFit: 'contain',
+                }} />
+              )}
+
+              {/* Away team logo */}
+              {room.awayTeamLogo && (
+                <img src={room.awayTeamLogo} width={260} height={260} style={{
+                  position: 'absolute', left: 495, top: 35,
+                  objectFit: 'contain',
+                }} />
+              )}
+
+              {/* LIVE V badge */}
+              <div style={{
+                position: 'absolute', left: 305, top: 348,
+                width: 190, height: 58,
+                background: 'rgba(5, 8, 16, 0.92)',
+                borderRadius: 16,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 900, color: 'white', letterSpacing: '-0.025em', lineHeight: 1 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 900, color: 'white', letterSpacing: '-0.8px', lineHeight: 1 }}>
                   LIVE
                 </span>
-                <span style={{ fontFamily: 'InterItalic', fontSize: 18, fontWeight: 900, color: '#00f5a0', letterSpacing: '-0.025em', lineHeight: 1, fontStyle: 'italic' }}>
+                <span style={{ fontFamily: 'InterItalic', fontSize: 34, fontWeight: 900, color: '#00f5a0', letterSpacing: '-0.8px', lineHeight: 1, fontStyle: 'italic' }}>
                   V
                 </span>
               </div>
             </div>
           ),
-          { width: 400, height: 210, fonts: FONTS },
+          { width: 800, height: 420, fonts: FONTS },
         );
       }
     } catch {
@@ -94,6 +173,7 @@ export async function GET(request: Request) {
     }
   }
 
+  // Default: generic LiveV OG image
   return new ImageResponse(
     (
       <div style={{
