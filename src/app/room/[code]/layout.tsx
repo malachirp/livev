@@ -19,13 +19,13 @@ export async function generateMetadata({ params }: { params: { code: string } })
       description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
       siteName: 'LIVE V',
       type: 'website',
-      images: [{ url: '/api/og', width: 400, height: 210, alt: 'LIVE V' }],
+      images: [{ url: `/api/og?code=${params.code}`, width: 1200, height: 630, alt: matchTitle }],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `LIVE V — ${matchTitle}`,
       description: `Pick your 5-a-side fantasy team for ${matchTitle} and compete with friends live.`,
-      images: ['/api/og'],
+      images: [`/api/og?code=${params.code}`],
     },
   };
 }
