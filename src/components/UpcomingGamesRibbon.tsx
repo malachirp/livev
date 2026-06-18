@@ -63,11 +63,8 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
         {fixtures === null ? (
-          <>
-            {[0, 1, 2].map(i => (
-              <div key={i} className="flex-shrink-0 bg-charcoal/40 rounded-xl p-3 border border-white/5 min-w-[180px] h-[76px] animate-pulse" />
-            ))}
-          </>
+          /* Reserve the band's final height while loading — no mismatched skeleton pills */
+          <div className="h-[70px]" />
         ) : (
           <>
             {fixtures.map(f => {
@@ -86,7 +83,7 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
                   key={f.fixture.id}
                   href={`/?fixture=${f.fixture.id}`}
                   onClick={() => track('ribbon_fixture_clicked', { fixtureId: f.fixture.id, leagueId: f.league.id })}
-                  className="flex-shrink-0 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all min-w-[180px] relative overflow-hidden"
+                  className="flex-shrink-0 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all min-w-[180px] h-[70px] relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-charcoal/60" />
                   <div
@@ -124,7 +121,7 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
             <a
               href="/"
               onClick={() => track('ribbon_see_more')}
-              className="flex-shrink-0 bg-charcoal/40 rounded-xl p-3 border border-white/5 hover:border-accent/20 transition-all min-w-[100px] flex items-center justify-center"
+              className="flex-shrink-0 bg-charcoal/40 rounded-xl p-3 border border-white/5 hover:border-accent/20 transition-all min-w-[100px] h-[70px] flex items-center justify-center"
             >
               <span className="text-[11px] font-bold text-accent">More →</span>
             </a>

@@ -440,8 +440,30 @@ export default function LiveRoomPage() {
         matchStarted={live || finished}
       />
 
-      {/* Lock status */}
-      <div className="px-4 pt-4 flex items-center justify-end">
+      {/* Lock status + Leaderboard / Player Stats toggle on one row */}
+      <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
+        <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
+          <button
+            onClick={() => setLeaderboardView('leaderboard')}
+            className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
+              leaderboardView === 'leaderboard'
+                ? 'bg-accent/20 text-accent'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Leaderboard
+          </button>
+          <button
+            onClick={() => setLeaderboardView('stats')}
+            className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
+              leaderboardView === 'stats'
+                ? 'bg-accent/20 text-accent'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Player Stats
+          </button>
+        </div>
         {finished ? (
           <span className="text-xs font-bold text-points-gold bg-points-gold/10 px-3 py-1 rounded-full">
             Final Results
@@ -455,32 +477,6 @@ export default function LiveRoomPage() {
             Teams revealed
           </span>
         ) : null}
-      </div>
-
-      {/* Leaderboard / Player Stats toggle */}
-      <div className="px-4 pt-2 pb-1">
-        <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
-          <button
-            onClick={() => setLeaderboardView('leaderboard')}
-            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'leaderboard'
-                ? 'bg-accent/20 text-accent'
-                : 'text-white/40 hover:text-white/60'
-            }`}
-          >
-            Leaderboard
-          </button>
-          <button
-            onClick={() => setLeaderboardView('stats')}
-            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'stats'
-                ? 'bg-accent/20 text-accent'
-                : 'text-white/40 hover:text-white/60'
-            }`}
-          >
-            Player Stats
-          </button>
-        </div>
       </div>
 
       {/* Leaderboard */}
