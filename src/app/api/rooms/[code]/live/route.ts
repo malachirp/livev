@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
-import { refreshMatchDataIfStale } from '@/lib/match-refresh';
+import { refreshMatchDataIfStale, removeUnpickedPlayersIfLocked } from '@/lib/match-refresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +43,15 @@ export async function GET(
     const kickoffTime = new Date(matchDate).getTime();
     const teamsLocked = Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS;
 
+    // Once teams lock, drop anyone who never saved a team. Persist the deletion
+    // and filter the already-fetched list so this response is consistent.
+    await removeUnpickedPlayersIfLocked(room.id, teamsLocked);
+    const players = (updatedRoom?.players ?? []).filter(p => !teamsLocked || p.picks.length > 0);
+
     const cookieStore = cookies();
     const sessionToken = getSessionToken(cookieStore.get('livev_session')?.value, params.code);
-    const currentPlayer = sessionToken && updatedRoom
-      ? updatedRoom.players.find(p => p.sessionToken === sessionToken)
+    const currentPlayer = sessionToken
+      ? players.find(p => p.sessionToken === sessionToken)
       : null;
 
     const globalLeaderboard = await buildGlobalLeaderboard(
@@ -66,7 +71,7 @@ export async function GET(
       teamsLocked,
       matchDate: matchDate.toISOString(),
       lockTime: new Date(kickoffTime - LOCK_BEFORE_KICKOFF_MS).toISOString(),
-      leaderboard: updatedRoom?.players.map(p => ({
+      leaderboard: players.map(p => ({
         id: p.id,
         displayName: p.displayName,
         isCreator: p.isCreator,

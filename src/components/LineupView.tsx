@@ -8,10 +8,11 @@ interface SquadPlayer {
   id: number;
   name: string;
   position: 'GK' | 'DEF' | 'MID' | 'FWD';
-  lineupStatus: 'starter' | 'bench';
+  lineupStatus: 'starter' | 'bench' | null;
   points: number;
   breakdown: Record<string, any> | null;
   minutesPlayed: number | null;
+  appearances?: number;
 }
 
 interface TeamSquad {
@@ -23,6 +24,7 @@ interface TeamSquad {
 
 interface LineupData {
   available: boolean;
+  preRelease?: boolean;
   matchStarted: boolean;
   home: TeamSquad | null;
   away: TeamSquad | null;
@@ -62,7 +64,7 @@ export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName,
     );
   }
 
-  if (!data.available) {
+  if (!data.available || (!data.home && !data.away)) {
     return (
       <div className="px-4 py-8 text-center">
         <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
@@ -73,18 +75,36 @@ export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName,
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </div>
-        <p className="text-white/60 text-sm font-bold">Lineups not available yet</p>
-        <p className="text-white/25 text-xs mt-1">They&apos;re announced ~1 hour before kick-off</p>
+        <p className="text-white/60 text-sm font-bold">Squads not available yet</p>
+        <p className="text-white/25 text-xs mt-1">Check back closer to kick-off</p>
       </div>
     );
   }
 
+  const preRelease = !!data.preRelease;
   const showPoints = data.matchStarted;
 
   function renderTeamColumn(team: TeamSquad | null, teamId: number, teamName: string) {
     if (!team) return <div className="flex-1" />;
 
     const colours = getTeamColours(teamId, teamName);
+
+    // Pre-release: full squad, sorted by appearances, no starter/bench split.
+    if (preRelease) {
+      return (
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-center pb-2 mb-1">
+            {team.teamLogo && (
+              <img src={team.teamLogo} alt={team.teamName} className="w-7 h-7 object-contain" />
+            )}
+          </div>
+          {team.players.map(p => (
+            <PlayerRow key={p.id} player={p} colours={colours} showPoints={false} showApps expanded={false} onToggle={() => {}} />
+          ))}
+        </div>
+      );
+    }
+
     const starters = team.players.filter(p => p.lineupStatus === 'starter');
     const bench = team.players.filter(p => p.lineupStatus === 'bench');
 
@@ -118,6 +138,12 @@ export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName,
 
   return (
     <div className="px-4 py-4">
+      {preRelease && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-white/5 text-center">
+          <p className="text-[11px] font-bold text-white/60">Lineups not released yet</p>
+          <p className="text-[10px] text-white/30 mt-0.5">Announced ~1 hour before kick-off — full squads shown below</p>
+        </div>
+      )}
       <div className="flex gap-2">
         {renderTeamColumn(data.home, homeTeamId, homeTeamName)}
         {renderTeamColumn(data.away, awayTeamId, awayTeamName)}
@@ -126,10 +152,11 @@ export default function LineupView({ code, homeTeamId, awayTeamId, homeTeamName,
   );
 }
 
-function PlayerRow({ player, colours, showPoints, expanded, onToggle }: {
+function PlayerRow({ player, colours, showPoints, showApps, expanded, onToggle }: {
   player: SquadPlayer;
   colours: { primary: string; secondary: string };
   showPoints: boolean;
+  showApps?: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -149,6 +176,9 @@ function PlayerRow({ player, colours, showPoints, expanded, onToggle }: {
         <span className="text-[11px] font-semibold text-white/70 flex-1 truncate text-left">
           {player.name.split(' ').pop()}
         </span>
+        {showApps && player.appearances != null && (
+          <span className="text-[10px] text-white/25 flex-shrink-0">{player.appearances} apps</span>
+        )}
         {showPoints && (
           <span className={`text-[11px] font-black flex-shrink-0 ${
             player.points > 0 ? 'text-accent' : player.points < 0 ? 'text-live-red' : 'text-white/20'

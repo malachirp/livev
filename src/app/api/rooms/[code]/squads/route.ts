@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getFixtureLineups } from '@/lib/api-football';
+import { getFixtureLineups, getSquad, getTeamPlayerStats, LEAGUES } from '@/lib/api-football';
 import { calculatePlayerPoints } from '@/lib/scoring';
-import { normalizeLineupPosition } from '@/lib/utils';
+import { normalizeLineupPosition, normalizePosition } from '@/lib/utils';
 import type { ApiLineupResponse, ApiFixturePlayersResponse, ApiFixtureEvent } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,11 @@ interface SquadPlayer {
   id: number;
   name: string;
   position: 'GK' | 'DEF' | 'MID' | 'FWD';
-  lineupStatus: 'starter' | 'bench';
+  lineupStatus: 'starter' | 'bench' | null;
   points: number;
   breakdown: Record<string, any> | null;
   minutesPlayed: number | null;
+  appearances?: number;
 }
 
 interface TeamSquad {
@@ -31,7 +32,7 @@ export async function GET(
   try {
     const room = await prisma.room.findUnique({
       where: { code: params.code },
-      select: { fixtureId: true, homeTeamId: true, awayTeamId: true, homeTeamName: true, awayTeamName: true, homeTeamLogo: true, awayTeamLogo: true },
+      select: { fixtureId: true, leagueId: true, homeTeamId: true, awayTeamId: true, homeTeamName: true, awayTeamName: true, homeTeamLogo: true, awayTeamLogo: true },
     });
 
     if (!room) {
@@ -42,8 +43,17 @@ export async function GET(
 
     const lineups: ApiLineupResponse[] | null = await getFixtureLineups(room.fixtureId).catch(() => null);
 
+    // Pre-release: lineups not announced yet — show each full squad with season
+    // appearances so there's something useful to browse before the team sheet drops.
     if (!lineups || lineups.length === 0) {
-      return NextResponse.json({ available: false, matchStarted: false, home: null, away: null });
+      const preRelease = await buildPreReleaseSquads(room);
+      return NextResponse.json({
+        available: true,
+        preRelease: true,
+        matchStarted: false,
+        home: preRelease.home,
+        away: preRelease.away,
+      });
     }
 
     const status = matchCache?.status || 'NS';
@@ -104,7 +114,7 @@ export async function GET(
       ? buildTeamSquad(awayLineup, room.awayTeamId, room.awayTeamName, room.awayTeamLogo || '')
       : null;
 
-    return NextResponse.json({ available: true, matchStarted, home, away });
+    return NextResponse.json({ available: true, preRelease: false, matchStarted, home, away });
   } catch (error) {
     console.error('Failed to fetch squads:', error);
     return NextResponse.json(
@@ -112,4 +122,59 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+interface PreReleaseRoom {
+  leagueId: number;
+  homeTeamId: number;
+  awayTeamId: number;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeTeamLogo: string | null;
+  awayTeamLogo: string | null;
+}
+
+async function buildPreReleaseSquads(room: PreReleaseRoom): Promise<{ home: TeamSquad | null; away: TeamSquad | null }> {
+  const buildTeam = async (teamId: number, teamName: string, teamLogo: string | null): Promise<TeamSquad | null> => {
+    const squad = await getSquad(teamId).catch(() => null);
+    if (!squad) return null;
+    const players: SquadPlayer[] = squad.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      position: normalizePosition(p.position),
+      lineupStatus: null,
+      points: 0,
+      breakdown: null,
+      minutesPlayed: null,
+    }));
+    return { teamId, teamName, teamLogo: teamLogo || squad.team.logo, players };
+  };
+
+  const [home, away] = await Promise.all([
+    buildTeam(room.homeTeamId, room.homeTeamName, room.homeTeamLogo),
+    buildTeam(room.awayTeamId, room.awayTeamName, room.awayTeamLogo),
+  ]);
+
+  // Merge season appearances where the league season is known. Fetch sequentially
+  // to avoid API rate-limiting when neither team is cached.
+  const league = LEAGUES.find(l => l.id === room.leagueId);
+  if (league) {
+    try {
+      const homeStats = await getTeamPlayerStats(room.homeTeamId, league.season);
+      const awayStats = await getTeamPlayerStats(room.awayTeamId, league.season);
+      if (home) for (const p of home.players) p.appearances = homeStats.get(p.id) ?? 0;
+      if (away) for (const p of away.players) p.appearances = awayStats.get(p.id) ?? 0;
+    } catch (err) {
+      console.error('[Squads] pre-release appearances failed:', err);
+    }
+  }
+
+  // Surface the most-capped players first; falls back to natural order without stats.
+  const sortByApps = (t: TeamSquad | null) => {
+    if (t) t.players.sort((a, b) => (b.appearances ?? 0) - (a.appearances ?? 0));
+  };
+  sortByApps(home);
+  sortByApps(away);
+
+  return { home, away };
 }

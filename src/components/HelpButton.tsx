@@ -76,32 +76,32 @@ function HelpModal({ onClose }: { onClose: () => void }) {
             <div>
               <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-2">Scoring</h3>
               <div className="space-y-0.5">
-                <ScoreRow label="Appearance" value="+2" />
                 <ScoreRow label="Goal" value="+10" />
                 <ScoreRow label="Assist" value="+6" />
+                <ScoreRow label="Clean Sheet (GK)" value="+6" />
+                <ScoreRow label="Penalty Save" value="+6" />
+                <ScoreRow label="Clean Sheet (DEF)" value="+4" />
+                <ScoreRow label="Appearance" value="+2" />
+                <ScoreRow label="Win Bonus" value="+2" />
                 <ScoreRow label="Shot on Target" value="+1" />
                 <ScoreRow label="Key Pass" value="+1" />
                 <ScoreRow label="Tackle" value="+1" />
                 <ScoreRow label="Interception" value="+1" />
                 <ScoreRow label="Successful Dribble" value="+1" />
                 <ScoreRow label="Save (GK)" value="+1" />
-                <ScoreRow label="Clean Sheet (GK)" value="+6" />
-                <ScoreRow label="Clean Sheet (DEF)" value="+4" />
-                <ScoreRow label="Penalty Save" value="+6" />
-                <ScoreRow label="Win Bonus" value="+2" />
               </div>
             </div>
 
             <div>
               <h3 className="text-xs font-bold text-live-red uppercase tracking-wider mb-2">Deductions</h3>
               <div className="space-y-0.5">
-                <ScoreRow label="Foul Committed" value="-1" negative />
-                <ScoreRow label="Goals Conceded 3+ (GK)" value="-3" negative />
-                <ScoreRow label="Yellow Card" value="-2" negative />
                 <ScoreRow label="Red Card" value="-4" negative />
                 <ScoreRow label="Own Goal" value="-4" negative />
                 <ScoreRow label="Penalty Miss" value="-4" negative />
-                <ScoreRow label="Loss Penalty" value="-2" negative />
+                <ScoreRow label="Goals Conceded 3+ (GK)" value="-3" negative />
+                <ScoreRow label="Yellow Card" value="-2" negative />
+                <ScoreRow label="Foul Committed" value="-1" negative />
+                <ScoreRow label="Loss Penalty" value="-1" negative />
               </div>
             </div>
 

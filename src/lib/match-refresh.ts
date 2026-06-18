@@ -154,6 +154,18 @@ async function refreshMatchData(fixtureId: number) {
 }
 
 /**
+ * Once teams lock, remove any player who never saved a team (0 picks).
+ * Picks are saved all-or-nothing (exactly 5), so "no picks" === still "Picking team…".
+ * There's no cron, so this runs on read from the room/live endpoints.
+ */
+export async function removeUnpickedPlayersIfLocked(roomId: string, teamsLocked: boolean) {
+  if (!teamsLocked) return;
+  await prisma.player.deleteMany({
+    where: { roomId, picks: { none: {} } },
+  });
+}
+
+/**
  * Refresh match data if it's stale and we should be refreshing it.
  * Used by both the live polling endpoint and the initial room load endpoint
  * so that the first paint shows fresh data.

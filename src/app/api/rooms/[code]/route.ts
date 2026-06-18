@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { getSessionToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
 import { checkDisplayName } from '@/lib/name-filter';
-import { refreshMatchDataIfStale } from '@/lib/match-refresh';
+import { refreshMatchDataIfStale, removeUnpickedPlayersIfLocked } from '@/lib/match-refresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export async function GET(
     // points and users have to hard refresh.
     const baseRoom = await prisma.room.findUnique({
       where: { code: params.code },
-      select: { fixtureId: true },
+      select: { id: true, fixtureId: true, matchDate: true },
     });
 
     if (!baseRoom) {
@@ -26,6 +26,12 @@ export async function GET(
     }
 
     const matchCache = await refreshMatchDataIfStale(baseRoom.fixtureId);
+
+    // Once teams lock, drop anyone who never saved a team — do this before
+    // reading the players so the leaderboard reflects it on this same response.
+    const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
+    const lockedNow = Date.now() >= new Date(baseRoom.matchDate).getTime() - LOCK_BEFORE_KICKOFF_MS;
+    await removeUnpickedPlayersIfLocked(baseRoom.id, lockedNow);
 
     const room = await prisma.room.findUnique({
       where: { code: params.code },
@@ -50,7 +56,6 @@ export async function GET(
       : null;
 
     // Teams are revealed 5 minutes before kickoff
-    const LOCK_BEFORE_KICKOFF_MS = 5 * 60 * 1000;
     const kickoffTime = new Date(room.matchDate).getTime();
     const teamsLocked = Date.now() >= kickoffTime - LOCK_BEFORE_KICKOFF_MS;
 

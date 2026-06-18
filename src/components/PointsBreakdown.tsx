@@ -6,24 +6,26 @@ interface Props {
 }
 
 const BREAKDOWN_ITEMS: { key: string; label: string }[] = [
-  { key: 'appearance', label: 'Appearance' },
+  // Positives by magnitude
   { key: 'goals', label: 'Goals' },
   { key: 'assists', label: 'Assists' },
+  { key: 'cleanSheet', label: 'Clean Sheet' },
+  { key: 'penaltySave', label: 'Penalty Save' },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'resultBonus', label: 'Result Bonus' },
   { key: 'shotsOnTarget', label: 'Shots on Target' },
   { key: 'keyPasses', label: 'Key Passes' },
   { key: 'tackles', label: 'Tackles' },
   { key: 'interceptions', label: 'Interceptions' },
   { key: 'dribblesWon', label: 'Dribbles Won' },
-  { key: 'foulsCommitted', label: 'Fouls Committed' },
-  { key: 'cleanSheet', label: 'Clean Sheet' },
   { key: 'saves', label: 'Saves Bonus' },
-  { key: 'penaltySave', label: 'Penalty Save' },
-  { key: 'goalsConceded', label: 'Goals Conceded (3+)' },
-  { key: 'yellowCard', label: 'Yellow Card' },
+  // Negatives by magnitude
   { key: 'redCard', label: 'Red Card' },
   { key: 'ownGoal', label: 'Own Goal' },
   { key: 'penaltyMiss', label: 'Penalty Miss' },
-  { key: 'resultBonus', label: 'Result Bonus' },
+  { key: 'goalsConceded', label: 'Goals Conceded (3+)' },
+  { key: 'yellowCard', label: 'Yellow Card' },
+  { key: 'foulsCommitted', label: 'Fouls Committed' },
 ];
 
 export { BREAKDOWN_ITEMS };

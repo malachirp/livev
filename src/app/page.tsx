@@ -197,7 +197,7 @@ export default function CreateGamePage() {
 
       {/* Your Games */}
       {myRooms.length > 0 && !myRoomsDismissed && (
-        <div className="px-4 pt-2 pb-1">
+        <div className="bg-black/20 border-y border-white/5 mb-1 px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Your Games</h3>
             <button

@@ -48,12 +48,20 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
   if (fixtures !== null && fixtures.length === 0) return null;
 
   return (
-    <div className="px-4 pt-3 pb-1">
+    <div className="bg-black/20 border-y border-white/5 mb-1">
+     <div className="px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold text-accent uppercase tracking-wider">Host a Game</h3>
+        <a
+          href="/"
+          onClick={() => track('ribbon_see_more')}
+          className="text-[11px] font-semibold text-accent/60 hover:text-accent transition-colors"
+        >
+          See all →
+        </a>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
         {fixtures === null ? (
           <>
             {[0, 1, 2].map(i => (
@@ -123,16 +131,7 @@ export default function UpcomingGamesRibbon({ currentFixtureId }: Props) {
           </>
         )}
       </div>
-
-      <div className="text-center mt-1">
-        <a
-          href="/"
-          onClick={() => track('ribbon_see_more')}
-          className="text-xs text-accent/60 font-semibold hover:text-accent transition-colors"
-        >
-          See more games →
-        </a>
-      </div>
+     </div>
     </div>
   );
 }

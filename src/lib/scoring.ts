@@ -43,7 +43,7 @@ export const SCORING = {
   OWN_GOAL: -4,
   PENALTY_MISS: -4,
   WIN_BONUS: 2,
-  LOSS_PENALTY: -2,
+  LOSS_PENALTY: -1,
 } as const;
 
 export function calculatePlayerPoints(

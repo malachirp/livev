@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import MatchBanner from '@/components/MatchBanner';
 import Leaderboard from '@/components/Leaderboard';
-import GlobalLeaderboard from '@/components/GlobalLeaderboard';
+import GlobalPositionRibbon from '@/components/GlobalPositionRibbon';
 import ShareButton from '@/components/ShareButton';
 import { getTeamColours } from '@/lib/team-colours';
 import { isMatchLive, isMatchFinished } from '@/types';
@@ -71,7 +71,7 @@ export default function LiveRoomPage() {
   const [lockCountdown, setLockCountdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leaderboardView, setLeaderboardView] = useState<'friends' | 'global' | 'stats'>('friends');
+  const [leaderboardView, setLeaderboardView] = useState<'leaderboard' | 'stats'>('leaderboard');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
 
   // Join form state
@@ -432,6 +432,14 @@ export default function LiveRoomPage() {
         events={events}
       />
 
+      {/* Always-present global position */}
+      <GlobalPositionRibbon
+        totalPlayers={globalLeaderboard.totalPlayers}
+        topTeams={globalLeaderboard.topTeams}
+        currentUserTeam={globalLeaderboard.currentUserTeam}
+        matchStarted={live || finished}
+      />
+
       {/* Lock status */}
       <div className="px-4 pt-4 flex items-center justify-end">
         {finished ? (
@@ -449,28 +457,18 @@ export default function LiveRoomPage() {
         ) : null}
       </div>
 
-      {/* Friends / Global / Squads toggle */}
+      {/* Leaderboard / Player Stats toggle */}
       <div className="px-4 pt-2 pb-1">
         <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
           <button
-            onClick={() => setLeaderboardView('friends')}
+            onClick={() => setLeaderboardView('leaderboard')}
             className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'friends'
+              leaderboardView === 'leaderboard'
                 ? 'bg-accent/20 text-accent'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Friends
-          </button>
-          <button
-            onClick={() => setLeaderboardView('global')}
-            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
-              leaderboardView === 'global'
-                ? 'bg-accent/20 text-accent'
-                : 'text-white/40 hover:text-white/60'
-            }`}
-          >
-            Global
+            Leaderboard
           </button>
           <button
             onClick={() => setLeaderboardView('stats')}
@@ -480,13 +478,13 @@ export default function LiveRoomPage() {
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Stats
+            Player Stats
           </button>
         </div>
       </div>
 
       {/* Leaderboard */}
-      {leaderboardView === 'friends' ? (
+      {leaderboardView === 'leaderboard' ? (
         <Leaderboard
           players={leaderboard}
           currentPlayerId={currentPlayer?.id}
@@ -502,19 +500,6 @@ export default function LiveRoomPage() {
             setShowRename(true);
           }}
           onRemovePlayer={(id, name) => setRemoveTarget({ id, name })}
-        />
-      ) : leaderboardView === 'global' ? (
-        <GlobalLeaderboard
-          totalPlayers={globalLeaderboard.totalPlayers}
-          totalTeams={globalLeaderboard.totalTeams}
-          topTeams={globalLeaderboard.topTeams}
-          currentUserTeam={globalLeaderboard.currentUserTeam}
-          homeTeamId={room.homeTeamId}
-          awayTeamId={room.awayTeamId}
-          homeTeamName={room.homeTeamName}
-          awayTeamName={room.awayTeamName}
-          teamsLocked={teamsLocked}
-          matchStarted={live || finished}
         />
       ) : (
         <LineupView
