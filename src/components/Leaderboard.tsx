@@ -14,6 +14,9 @@ interface Props {
   homeTeamName?: string;
   awayTeamName?: string;
   teamsLocked?: boolean;
+  finished?: boolean;
+  lockCountdown?: string | null;
+  notStarted?: boolean;
   isHost?: boolean;
   onRename?: () => void;
   onRemovePlayer?: (playerId: string, displayName: string) => void;
@@ -27,7 +30,7 @@ function getDominantTeamId(picks: PlayerData['picks']): number | null {
   return Number(sorted[0][0]);
 }
 
-export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, isHost, onRename, onRemovePlayer }: Props) {
+export default function Leaderboard({ players, currentSessionToken, currentPlayerId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, teamsLocked = true, finished, lockCountdown, notStarted, isHost, onRename, onRemovePlayer }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...players].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -56,7 +59,16 @@ export default function Leaderboard({ players, currentSessionToken, currentPlaye
 
   return (
     <div className="px-4 py-3 space-y-2">
-      <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Leaderboard</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Leaderboard</h3>
+        {finished ? (
+          <span className="text-xs font-bold text-points-gold bg-points-gold/10 px-3 py-1 rounded-full">Final Results</span>
+        ) : !teamsLocked && lockCountdown ? (
+          <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full">Teams reveal in {lockCountdown}</span>
+        ) : teamsLocked && notStarted ? (
+          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-full">Teams revealed</span>
+        ) : null}
+      </div>
       {sorted.map((player, index) => {
         const isExpanded = expandedId === player.id;
         // hasPicks from API tells us if they've picked (even when picks are hidden)

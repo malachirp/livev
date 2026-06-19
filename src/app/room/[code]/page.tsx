@@ -440,12 +440,12 @@ export default function LiveRoomPage() {
         matchStarted={live || finished}
       />
 
-      {/* Lock status + Leaderboard / Player Stats toggle on one row */}
-      <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
+      {/* Leaderboard / Player Stats toggle */}
+      <div className="px-4 pt-3 pb-1">
         <div className="flex gap-1 bg-charcoal/40 rounded-lg p-1">
           <button
             onClick={() => setLeaderboardView('leaderboard')}
-            className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
+            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
               leaderboardView === 'leaderboard'
                 ? 'bg-accent/20 text-accent'
                 : 'text-white/40 hover:text-white/60'
@@ -455,7 +455,7 @@ export default function LiveRoomPage() {
           </button>
           <button
             onClick={() => setLeaderboardView('stats')}
-            className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
+            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
               leaderboardView === 'stats'
                 ? 'bg-accent/20 text-accent'
                 : 'text-white/40 hover:text-white/60'
@@ -464,19 +464,6 @@ export default function LiveRoomPage() {
             Player Stats
           </button>
         </div>
-        {finished ? (
-          <span className="text-xs font-bold text-points-gold bg-points-gold/10 px-3 py-1 rounded-full">
-            Final Results
-          </span>
-        ) : !teamsLocked && lockCountdown ? (
-          <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full">
-            Teams reveal in {lockCountdown}
-          </span>
-        ) : teamsLocked && notStarted ? (
-          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-full">
-            Teams revealed
-          </span>
-        ) : null}
       </div>
 
       {/* Leaderboard */}
@@ -490,6 +477,9 @@ export default function LiveRoomPage() {
           homeTeamName={room.homeTeamName}
           awayTeamName={room.awayTeamName}
           teamsLocked={teamsLocked}
+          finished={finished}
+          lockCountdown={lockCountdown}
+          notStarted={notStarted}
           onRename={() => {
             setRenameName(currentPlayer?.displayName || '');
             setRenameError(null);
