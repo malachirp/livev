@@ -12,14 +12,13 @@ const LEAGUE_PRESTIGE: Record<number, number> = {
 
 interface Props {
   currentFixtureId?: number;
-  // League host mode: restrict to one competition and create a game on click
-  // instead of deep-linking to the home page.
   competitionId?: number;
   heading?: string;
   onSelectFixture?: (fixture: ApiFixture) => void;
+  excludeFixtureIds?: number[];
 }
 
-export default function UpcomingGamesRibbon({ currentFixtureId, competitionId, heading = 'Host a Game', onSelectFixture }: Props) {
+export default function UpcomingGamesRibbon({ currentFixtureId, competitionId, heading = 'Host a Game', onSelectFixture, excludeFixtureIds }: Props) {
   const [fixtures, setFixtures] = useState<ApiFixture[] | null>(null);
   const leagueMode = !!onSelectFixture;
 
@@ -36,7 +35,8 @@ export default function UpcomingGamesRibbon({ currentFixtureId, competitionId, h
           .filter(f => f.fixture.id !== currentFixtureId)
           .filter(f => competitionId == null || f.league.id === competitionId)
           .filter(f => ['NS', 'TBD'].includes(f.fixture.status.short))
-          .filter(f => new Date(f.fixture.date).getTime() > Date.now());
+          .filter(f => new Date(f.fixture.date).getTime() > Date.now())
+          .filter(f => !(excludeFixtureIds || []).includes(f.fixture.id));
 
         upcoming.sort((a, b) => {
           const timeDiff = a.fixture.timestamp - b.fixture.timestamp;

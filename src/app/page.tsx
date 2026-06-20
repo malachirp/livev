@@ -244,42 +244,39 @@ export default function CreateGamePage() {
         <p className="text-sm text-white/40 mt-1">
           Create a 5-a-side fantasy game with friends
         </p>
-        <button
-          onClick={() => {
-            setLeagueError(null);
-            setShowCreateLeague(true);
-          }}
-          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-bold hover:bg-accent/20 transition-colors"
-        >
-          🏆 Create a League
-        </button>
       </div>
 
-      {/* Your Leagues */}
-      {myLeagues.length > 0 && (
-        <div className="bg-black/20 border-y border-white/5 mb-1 px-4 py-3">
-          <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-2">Your Leagues</h3>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            {myLeagues.map(lg => (
-              <a
-                key={lg.code}
-                href={`/league/${lg.code}`}
-                className="flex-shrink-0 bg-charcoal/60 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all min-w-[180px]"
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-sm">🏆</span>
-                  <span className="text-[12px] font-bold text-white truncate">{lg.name}</span>
-                </div>
-                <p className="text-[10px] text-white/30 mb-1.5 truncate">{lg.competitionName} · {lg.memberCount} {lg.memberCount === 1 ? 'member' : 'members'}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-white/40">
-                    {lg.myRank ? `#${lg.myRank}` : '—'} · {lg.myPoints} pts
-                  </span>
-                  <span className="text-[10px] font-bold text-accent">Open →</span>
-                </div>
-              </a>
-            ))}
-          </div>
+      {/* Leagues — subtle inline section */}
+      {(myLeagues.length > 0 || !loading) && (
+        <div className="px-4 pb-3">
+          {myLeagues.length > 0 && (
+            <div className="space-y-1 mb-2">
+              {myLeagues.map(lg => (
+                <a
+                  key={lg.code}
+                  href={`/league/${lg.code}`}
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-white/20">🏆</span>
+                    <span className="text-sm font-bold text-white/80 truncate">{lg.name}</span>
+                    <span className="text-[10px] text-white/25 flex-shrink-0">{lg.memberCount} in</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {lg.myRank && <span className="text-[11px] text-white/30">#{lg.myRank}</span>}
+                    <span className="text-[11px] font-bold text-accent">{lg.myPoints} pts</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/20"><path d="M9 18l6-6-6-6" /></svg>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => { setLeagueError(null); setShowCreateLeague(true); }}
+            className="text-xs font-semibold text-white/25 hover:text-white/40 transition-colors"
+          >
+            + Create a league
+          </button>
         </div>
       )}
 
@@ -439,26 +436,32 @@ export default function CreateGamePage() {
               <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">League name</label>
               <input
                 type="text"
-                placeholder="e.g. World Cup Lads"
+                placeholder="Enter a name"
                 value={leagueName}
                 onChange={e => setLeagueName(e.target.value)}
                 maxLength={40}
+                autoFocus
                 className="w-full px-4 py-3.5 rounded-xl bg-charcoal text-white text-base font-medium placeholder-white/30 outline-none focus:ring-2 focus:ring-accent/30 mb-4"
               />
 
               <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Competition</label>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="space-y-0.5 max-h-[200px] overflow-y-auto rounded-xl bg-charcoal/40 mb-4">
                 {(data?.leagues || []).map(lg => (
                   <button
                     key={lg.id}
                     onClick={() => setLeagueCompetitionId(lg.id)}
-                    className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-all first:rounded-t-xl last:rounded-b-xl ${
                       leagueCompetitionId === lg.id
-                        ? 'bg-accent text-navy'
-                        : 'bg-charcoal text-white/50 hover:text-white/70'
+                        ? 'bg-accent/10 text-white'
+                        : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70'
                     }`}
                   >
-                    {lg.name}
+                    <span className="text-sm font-medium">{lg.name}</span>
+                    {leagueCompetitionId === lg.id && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent flex-shrink-0">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    )}
                   </button>
                 ))}
               </div>

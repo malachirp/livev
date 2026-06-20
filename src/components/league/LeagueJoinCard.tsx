@@ -37,7 +37,6 @@ export default function LeagueJoinCard({ leagueName, competitionName, memberCoun
   return (
     <div className="flex-1 flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center">
-        <div className="text-4xl mb-3">🏆</div>
         <h1 className="text-2xl font-black text-white mb-1">{leagueName}</h1>
         <p className="text-sm text-white/40 mb-1">{competitionName} · {memberCount} {memberCount === 1 ? 'member' : 'members'}</p>
         <p className="text-xs text-white/30 mb-6">

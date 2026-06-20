@@ -161,17 +161,18 @@ export default function LeaguePage() {
 
       {/* League title bar */}
       <div className="px-4 pt-5 pb-3">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">🏆</span>
-          <h1 className="text-2xl font-black text-white leading-tight">{league.name}</h1>
-        </div>
-        <p className="text-sm text-white/40">
+        <h1 className="text-2xl font-black text-white leading-tight">{league.name}</h1>
+        <p className="text-sm text-white/40 mt-0.5">
           {league.competitionName} · {league.memberCount} {league.memberCount === 1 ? 'member' : 'members'} · {data.totals?.gamesPlayed || 0} {data.totals?.gamesPlayed === 1 ? 'game' : 'games'}
         </p>
       </div>
 
       {/* Host a game from this league (competition-scoped) */}
-      <UpcomingGamesRibbon competitionId={league.competitionId} onSelectFixture={handleHost} />
+      <UpcomingGamesRibbon
+        competitionId={league.competitionId}
+        onSelectFixture={handleHost}
+        excludeFixtureIds={(data.games || []).map(g => g.fixtureId)}
+      />
       {creating && (
         <p className="px-4 py-2 text-xs text-accent">Creating game…</p>
       )}

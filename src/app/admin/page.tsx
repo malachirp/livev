@@ -22,6 +22,18 @@ interface AdminRoom {
   awayScore: number | null;
 }
 
+interface AdminLeague {
+  id: string;
+  code: string;
+  name: string;
+  competitionName: string;
+  season: number;
+  createdAt: string;
+  memberCount: number;
+  gameCount: number;
+  members: { name: string; isAdmin: boolean }[];
+}
+
 interface Analytics {
   summary: {
     totalGames: number;
@@ -309,8 +321,10 @@ export default function AdminPage() {
   const [adminPassword, setAdminPassword] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'live' | 'finished'>('all');
-  const [tab, setTab] = useState<'games' | 'analytics'>('games');
+  const [tab, setTab] = useState<'games' | 'analytics' | 'leagues'>('games');
   const [visibleCount, setVisibleCount] = useState(20);
+  const [adminLeagues, setAdminLeagues] = useState<AdminLeague[]>([]);
+  const [deletingLeague, setDeletingLeague] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('livev_admin') === 'true') {
@@ -357,6 +371,37 @@ export default function AdminPage() {
     }
   }
 
+  async function fetchLeagues(pw?: string) {
+    const authPw = pw || adminPassword;
+    try {
+      const res = await fetch('/api/admin/leagues', {
+        headers: { 'x-admin-password': authPw },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setAdminLeagues(data.leagues || []);
+    } catch {
+      // Silently fail
+    }
+  }
+
+  async function handleDeleteLeague(leagueId: string, leagueName: string) {
+    if (!confirm(`Delete league "${leagueName}"? Members will be removed. Games will keep their data but lose the league link.`)) return;
+    setDeletingLeague(leagueId);
+    try {
+      const res = await fetch(`/api/admin/leagues?id=${leagueId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminPassword },
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      setAdminLeagues(prev => prev.filter(l => l.id !== leagueId));
+    } catch {
+      alert('Failed to delete league');
+    } finally {
+      setDeletingLeague(null);
+    }
+  }
+
   async function fetchAnalytics(pw?: string) {
     const authPw = pw || adminPassword;
     try {
@@ -391,6 +436,7 @@ export default function AdminPage() {
     if (authenticated && adminPassword) {
       fetchRooms(adminPassword);
       fetchAnalytics(adminPassword);
+      fetchLeagues(adminPassword);
     }
   }, [authenticated, adminPassword]);
 
@@ -400,6 +446,7 @@ export default function AdminPage() {
       if (document.visibilityState === 'visible') {
         fetchRooms(adminPassword);
         fetchAnalytics(adminPassword);
+        fetchLeagues(adminPassword);
       }
     }
     document.addEventListener('visibilitychange', handleVisibility);
@@ -506,7 +553,7 @@ export default function AdminPage() {
             <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-1 rounded">ADMIN</span>
           </div>
           <button
-            onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); }}
+            onClick={() => { setLoading(true); fetchRooms(adminPassword); fetchAnalytics(adminPassword); fetchLeagues(adminPassword); }}
             className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
           >
             Refresh
@@ -521,6 +568,14 @@ export default function AdminPage() {
             }`}
           >
             Games
+          </button>
+          <button
+            onClick={() => setTab('leagues')}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              tab === 'leagues' ? 'bg-accent/20 text-accent' : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Leagues
           </button>
           <button
             onClick={() => setTab('analytics')}
@@ -673,6 +728,66 @@ export default function AdminPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Leagues tab */}
+      {!loading && !error && tab === 'leagues' && (
+        <div className="flex-1 px-4 py-3 space-y-2 overflow-y-auto pb-8">
+          {adminLeagues.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-white/40 text-sm">No leagues created yet</p>
+            </div>
+          ) : (
+            adminLeagues.map(league => (
+              <div key={league.id} className="bg-charcoal/60 rounded-xl p-4 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-white truncate">{league.name}</h4>
+                    <p className="text-[11px] text-white/40">
+                      {league.competitionName} · {league.season}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono text-white/30 bg-white/5 px-2 py-0.5 rounded flex-shrink-0 ml-2">
+                    {league.code}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4 text-[11px] text-white/40 mb-3">
+                  <span>{league.memberCount} member{league.memberCount !== 1 ? 's' : ''}</span>
+                  <span>{league.gameCount} game{league.gameCount !== 1 ? 's' : ''}</span>
+                  <span>{formatDate(league.createdAt)}</span>
+                </div>
+
+                {league.members.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {league.members.map((m, i) => (
+                      <span key={i} className="text-[10px] font-medium text-white/50 bg-navy/60 px-2 py-0.5 rounded-full">
+                        {m.name}
+                        {m.isAdmin && <span className="text-accent/60 ml-1">admin</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`/league/${league.code}`}
+                    className="text-[11px] font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-lg hover:bg-accent/20 transition-colors"
+                  >
+                    View
+                  </a>
+                  <button
+                    onClick={() => handleDeleteLeague(league.id, league.name)}
+                    disabled={deletingLeague === league.id}
+                    className="text-[11px] font-bold text-red-400 bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                  >
+                    {deletingLeague === league.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
       {/* Analytics tab */}
