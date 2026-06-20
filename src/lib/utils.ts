@@ -10,6 +10,14 @@ export function generateSessionToken(): string {
   return customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 32)();
 }
 
+export function generateLeagueCode(): string {
+  return nanoid();
+}
+
+export function generateMemberToken(): string {
+  return customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 32)();
+}
+
 export function normalizePosition(apiPosition: string): 'GK' | 'DEF' | 'MID' | 'FWD' {
   switch (apiPosition) {
     case 'Goalkeeper':
@@ -102,6 +110,26 @@ export function getSessionToken(cookieValue: string | undefined, roomCode: strin
   // Fallback: old single-token format — check if it's a plain token string
   if (cookieValue && !cookieValue.startsWith('{')) return cookieValue;
   return null;
+}
+
+// League helpers — store a JSON map of leagueCode → memberToken in the livev_leagues cookie,
+// so a person is recognised across every game room created under a league they've joined.
+export function getLeagueMap(cookieValue: string | undefined): Record<string, string> {
+  if (!cookieValue) return {};
+  try {
+    const parsed = JSON.parse(cookieValue);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Not JSON — ignore
+  }
+  return {};
+}
+
+export function getMemberToken(cookieValue: string | undefined, leagueCode: string): string | null {
+  const map = getLeagueMap(cookieValue);
+  return map[leagueCode] || null;
 }
 
 export function timeUntilKickoff(matchDate: string): string {

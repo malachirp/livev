@@ -30,6 +30,16 @@ interface MyRoom {
   userPoints: number;
 }
 
+interface MyLeague {
+  code: string;
+  name: string;
+  competitionName: string;
+  memberCount: number;
+  gamesPlayed: number;
+  myPoints: number;
+  myRank: number | null;
+}
+
 export default function CreateGamePage() {
   const router = useRouter();
   const [data, setData] = useState<FixturesResponse | null>(null);
@@ -43,6 +53,15 @@ export default function CreateGamePage() {
   const [myRoomsDismissed, setMyRoomsDismissed] = useState(false);
   const [myRoomsHasMore, setMyRoomsHasMore] = useState(false);
   const [myRoomsLoading, setMyRoomsLoading] = useState(false);
+  const [myLeagues, setMyLeagues] = useState<MyLeague[]>([]);
+
+  // Create-league sheet
+  const [showCreateLeague, setShowCreateLeague] = useState(false);
+  const [leagueName, setLeagueName] = useState('');
+  const [leagueCompetitionId, setLeagueCompetitionId] = useState<number | null>(null);
+  const [leagueCreatorName, setLeagueCreatorName] = useState('');
+  const [creatingLeague, setCreatingLeague] = useState(false);
+  const [leagueError, setLeagueError] = useState<string | null>(null);
 
   // Drag-to-dismiss for fixture bottom sheet
   const fixtureSheetRef = useRef<HTMLDivElement>(null);
@@ -87,6 +106,38 @@ export default function CreateGamePage() {
       })
       .catch(() => {});
   }, []);
+
+  // Fetch user's leagues
+  useEffect(() => {
+    fetch('/api/me/leagues')
+      .then(res => res.json())
+      .then(data => { if (data.leagues?.length) setMyLeagues(data.leagues); })
+      .catch(() => {});
+  }, []);
+
+  const handleCreateLeague = async () => {
+    if (!leagueName.trim() || !leagueCompetitionId || !leagueCreatorName.trim()) return;
+    setCreatingLeague(true);
+    setLeagueError(null);
+    try {
+      const res = await fetch('/api/leagues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: leagueName.trim(),
+          competitionId: leagueCompetitionId,
+          displayName: leagueCreatorName.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create league');
+      track('league_created', { code: data.code, competitionId: leagueCompetitionId });
+      router.push(`/league/${data.code}`);
+    } catch (err: any) {
+      setLeagueError(err.message);
+      setCreatingLeague(false);
+    }
+  };
 
   const loadMoreRooms = () => {
     setMyRoomsLoading(true);
@@ -193,7 +244,44 @@ export default function CreateGamePage() {
         <p className="text-sm text-white/40 mt-1">
           Create a 5-a-side fantasy game with friends
         </p>
+        <button
+          onClick={() => {
+            setLeagueError(null);
+            setShowCreateLeague(true);
+          }}
+          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-bold hover:bg-accent/20 transition-colors"
+        >
+          🏆 Create a League
+        </button>
       </div>
+
+      {/* Your Leagues */}
+      {myLeagues.length > 0 && (
+        <div className="bg-black/20 border-y border-white/5 mb-1 px-4 py-3">
+          <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-2">Your Leagues</h3>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {myLeagues.map(lg => (
+              <a
+                key={lg.code}
+                href={`/league/${lg.code}`}
+                className="flex-shrink-0 bg-charcoal/60 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all min-w-[180px]"
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">🏆</span>
+                  <span className="text-[12px] font-bold text-white truncate">{lg.name}</span>
+                </div>
+                <p className="text-[10px] text-white/30 mb-1.5 truncate">{lg.competitionName} · {lg.memberCount} {lg.memberCount === 1 ? 'member' : 'members'}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-white/40">
+                    {lg.myRank ? `#${lg.myRank}` : '—'} · {lg.myPoints} pts
+                  </span>
+                  <span className="text-[10px] font-bold text-accent">Open →</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Your Games */}
       {myRooms.length > 0 && !myRoomsDismissed && (
@@ -328,6 +416,78 @@ export default function CreateGamePage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Bottom sheet: Create a League */}
+      {showCreateLeague && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sheet"
+            onClick={() => { setShowCreateLeague(false); setLeagueError(null); }}
+          />
+          <div className="relative bg-navy border-t border-white/10 rounded-t-3xl animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-center py-3">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            <div className="px-6 pb-8">
+              <h3 className="text-lg font-black text-white mb-1">Create a League</h3>
+              <p className="text-xs text-white/40 mb-5">
+                A season-long table across many games. Counts games created in this league from now on.
+              </p>
+
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">League name</label>
+              <input
+                type="text"
+                placeholder="e.g. World Cup Lads"
+                value={leagueName}
+                onChange={e => setLeagueName(e.target.value)}
+                maxLength={40}
+                className="w-full px-4 py-3.5 rounded-xl bg-charcoal text-white text-base font-medium placeholder-white/30 outline-none focus:ring-2 focus:ring-accent/30 mb-4"
+              />
+
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Competition</label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(data?.leagues || []).map(lg => (
+                  <button
+                    key={lg.id}
+                    onClick={() => setLeagueCompetitionId(lg.id)}
+                    className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                      leagueCompetitionId === lg.id
+                        ? 'bg-accent text-navy'
+                        : 'bg-charcoal text-white/50 hover:text-white/70'
+                    }`}
+                  >
+                    {lg.name}
+                  </button>
+                ))}
+              </div>
+
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Your name</label>
+              <input
+                type="text"
+                placeholder="Enter your display name"
+                value={leagueCreatorName}
+                onChange={e => setLeagueCreatorName(e.target.value)}
+                maxLength={20}
+                className="w-full px-4 py-3.5 rounded-xl bg-charcoal text-white text-base font-medium placeholder-white/30 outline-none focus:ring-2 focus:ring-accent/30 mb-2"
+              />
+
+              {leagueError && <p className="text-live-red text-xs mb-2">{leagueError}</p>}
+
+              <button
+                onClick={handleCreateLeague}
+                disabled={!leagueName.trim() || !leagueCompetitionId || !leagueCreatorName.trim() || creatingLeague}
+                className={`w-full py-4 rounded-2xl font-black text-base transition-all mt-2 ${
+                  leagueName.trim() && leagueCompetitionId && leagueCreatorName.trim()
+                    ? 'bg-accent text-navy active:scale-[0.98]'
+                    : 'bg-charcoal text-white/30 cursor-not-allowed'
+                }`}
+              >
+                {creatingLeague ? 'Creating...' : 'Create League'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -34,11 +34,20 @@ interface GlobalLeaderboardData {
   currentUserTeam: GlobalTeamEntry | null;
 }
 
+interface LeagueContext {
+  code: string;
+  name: string;
+  isMember: boolean;
+  memberDisplayName: string;
+  alreadyJoinedRoom: boolean;
+}
+
 interface RoomResponse {
   room: RoomData & { teamsLocked: boolean; lockTime: string };
   currentPlayer: { id: string; displayName: string; isCreator: boolean; hasPicks: boolean } | null;
   match: { status: string; homeScore: number | null; awayScore: number | null; minute: number | null };
   globalLeaderboard: GlobalLeaderboardData;
+  league: LeagueContext | null;
 }
 
 interface LiveResponse {
@@ -73,6 +82,8 @@ export default function LiveRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [leaderboardView, setLeaderboardView] = useState<'leaderboard' | 'stats'>('leaderboard');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardData>({ totalPlayers: 0, totalTeams: 0, topTeams: [], currentUserTeam: null });
+  const [league, setLeague] = useState<LeagueContext | null>(null);
+  const [leagueJoining, setLeagueJoining] = useState(false);
 
   // Join form state
   const [showJoin, setShowJoin] = useState(false);
@@ -141,6 +152,7 @@ export default function LiveRoomPage() {
         setTeamsLocked(data.room.teamsLocked);
         setLockTime(data.room.lockTime);
         if (data.globalLeaderboard) setGlobalLeaderboard(data.globalLeaderboard);
+        setLeague(data.league);
         setLoading(false);
       } catch {
         setError('Room not found');
@@ -297,6 +309,26 @@ export default function LiveRoomPage() {
     }
   };
 
+  // One-tap join for recognised league members — uses their league identity, no name entry.
+  const handleLeagueJoin = async () => {
+    if (leagueJoining) return;
+    setLeagueJoining(true);
+    try {
+      const res = await fetch(`/api/rooms/${code}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to join');
+      track('league_room_joined', { code });
+      setCurrentPlayer({ id: data.playerId, displayName: league?.memberDisplayName || '', isCreator: false, hasPicks: false });
+      router.push(`/room/${code}/pick`);
+    } catch {
+      setLeagueJoining(false);
+    }
+  };
+
   const handleRename = async () => {
     if (!renameName.trim()) return;
     setRenaming(true);
@@ -394,6 +426,15 @@ export default function LiveRoomPage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-live-red live-dot" />
                 <span className="text-[10px] font-bold text-live-red uppercase">Live</span>
               </span>
+            )}
+            {league?.isMember && (
+              <a
+                href={`/league/${league.code}`}
+                className="ml-1 flex items-center gap-1 bg-accent/10 px-2 py-0.5 rounded-full hover:bg-accent/20 transition-colors max-w-[140px]"
+              >
+                <span className="text-[10px]">🏆</span>
+                <span className="text-[10px] font-bold text-accent truncate">{league.name}</span>
+              </a>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -498,7 +539,21 @@ export default function LiveRoomPage() {
       )}
 
       {/* Bottom action bar — only show join/pick/edit before teams lock (5 min before KO) */}
-      {!isInGame && canEdit && (
+      {!isInGame && canEdit && league?.isMember && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
+            <button
+              onClick={handleLeagueJoin}
+              disabled={leagueJoining}
+              className="w-full py-4 rounded-2xl font-black text-base bg-accent text-navy active:scale-[0.98] transition-all"
+            >
+              {leagueJoining ? 'Joining...' : `You're in ${league.name} — Pick Your Team`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isInGame && canEdit && !league?.isMember && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
           <div className="max-w-lg mx-auto px-4 py-4 bg-gradient-to-t from-navy via-navy/95 to-transparent">
             <button

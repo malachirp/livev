@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
-import { getSessionToken } from '@/lib/utils';
+import { getSessionToken, getMemberToken } from '@/lib/utils';
 import { buildGlobalLeaderboard } from '@/lib/global-leaderboard';
 import { checkDisplayName } from '@/lib/name-filter';
 import { refreshMatchDataIfStale, removeUnpickedPlayersIfLocked } from '@/lib/match-refresh';
@@ -54,6 +54,34 @@ export async function GET(
     const currentPlayer = sessionToken
       ? room.players.find(p => p.sessionToken === sessionToken)
       : null;
+
+    // League context — only surfaced to members; outsiders get league: null and no league UI.
+    let league: {
+      code: string;
+      name: string;
+      isMember: true;
+      memberDisplayName: string;
+      alreadyJoinedRoom: boolean;
+    } | null = null;
+    if (room.leagueGroupId) {
+      const leagueRow = await prisma.league.findUnique({
+        where: { id: room.leagueGroupId },
+        include: { members: { select: { id: true, displayName: true, memberToken: true } } },
+      });
+      if (leagueRow) {
+        const memberToken = getMemberToken(cookieStore.get('livev_leagues')?.value, leagueRow.code);
+        const member = memberToken ? leagueRow.members.find(m => m.memberToken === memberToken) : null;
+        if (member) {
+          league = {
+            code: leagueRow.code,
+            name: leagueRow.name,
+            isMember: true,
+            memberDisplayName: member.displayName,
+            alreadyJoinedRoom: !!currentPlayer && currentPlayer.leagueMemberId === member.id,
+          };
+        }
+      }
+    }
 
     // Teams are revealed 5 minutes before kickoff
     const kickoffTime = new Date(room.matchDate).getTime();
@@ -122,6 +150,7 @@ export async function GET(
           }
         : { status: 'NS', homeScore: null, awayScore: null, minute: null },
       globalLeaderboard,
+      league,
     });
   } catch (error) {
     console.error('Failed to fetch room:', error);

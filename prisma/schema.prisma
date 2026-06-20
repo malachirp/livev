@@ -11,7 +11,7 @@ model Room {
   id           String   @id @default(cuid())
   code         String   @unique
   fixtureId    Int
-  leagueId     Int
+  leagueId     Int      // API-Football competition id (World Cup, PL, ...) — NOT the social League below
   homeTeamId   Int
   awayTeamId   Int
   homeTeamName String
@@ -23,7 +23,12 @@ model Room {
   createdAt    DateTime @default(now())
   players      Player[]
 
+  // Optional link to a social League (umbrella over many rooms). Null for normal/outsider rooms.
+  leagueGroupId String?
+  leagueGroup   League? @relation(fields: [leagueGroupId], references: [id], onDelete: SetNull)
+
   @@index([fixtureId])
+  @@index([leagueGroupId])
 }
 
 model Player {
@@ -38,9 +43,45 @@ model Player {
   picks        Pick[]
   createdAt    DateTime @default(now())
 
+  // Optional link to a persistent league identity (set when an auto-recognised league member joins)
+  leagueMemberId String?
+  leagueMember   LeagueMember? @relation(fields: [leagueMemberId], references: [id], onDelete: SetNull)
+
   @@unique([roomId, displayName])
   @@index([roomId])
   @@index([sessionToken])
+  @@index([leagueMemberId])
+}
+
+// A social "league": a season-long umbrella over many game rooms within one competition.
+model League {
+  id            String   @id @default(cuid())
+  code          String   @unique          // shareable league code
+  name          String
+  competitionId Int                        // API-Football competition id (matches LEAGUES[].id)
+  season        Int                        // matches LEAGUES[].season
+  createdAt     DateTime @default(now())
+  members       LeagueMember[]
+  rooms         Room[]
+
+  @@index([competitionId])
+}
+
+// A persistent identity within a league. The memberToken lives in the livev_leagues cookie,
+// letting the same person be recognised across every game room created under the league.
+model LeagueMember {
+  id          String   @id @default(cuid())
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  displayName String
+  memberToken String   @unique
+  isAdmin     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  players     Player[]
+
+  @@unique([leagueId, displayName])
+  @@index([leagueId])
+  @@index([memberToken])
 }
 
 model Pick {

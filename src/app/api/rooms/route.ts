@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { generateRoomCode, generateSessionToken, getSessionMap } from '@/lib/utils';
+import { generateRoomCode, generateSessionToken, getSessionMap, getMemberToken } from '@/lib/utils';
 import { checkDisplayName } from '@/lib/name-filter';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fixtureId, leagueId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeTeamLogo, awayTeamLogo, venue, matchDate, displayName } = body;
+    const { fixtureId, leagueId, homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeTeamLogo, awayTeamLogo, venue, matchDate, displayName, leagueCode } = body;
 
     if (!fixtureId || !displayName || !homeTeamId || !awayTeamId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -24,6 +24,34 @@ export async function POST(request: Request) {
 
     if (!matchDate || isNaN(new Date(matchDate).getTime())) {
       return NextResponse.json({ error: 'Invalid match date' }, { status: 400 });
+    }
+
+    const cookieStore = cookies();
+
+    // If this game is hosted under a league, the host must be a member and the
+    // fixture must belong to the league's chosen competition.
+    let leagueGroupId: string | null = null;
+    let leagueMemberId: string | null = null;
+    let creatorName = displayName.trim();
+    if (leagueCode) {
+      const league = await prisma.league.findUnique({
+        where: { code: leagueCode },
+        include: { members: true },
+      });
+      if (!league) {
+        return NextResponse.json({ error: 'League not found' }, { status: 404 });
+      }
+      const memberToken = getMemberToken(cookieStore.get('livev_leagues')?.value, leagueCode);
+      const member = memberToken ? league.members.find(m => m.memberToken === memberToken) : null;
+      if (!member) {
+        return NextResponse.json({ error: 'You are not a member of this league' }, { status: 403 });
+      }
+      if (leagueId !== league.competitionId) {
+        return NextResponse.json({ error: "Game must be in the league's competition" }, { status: 400 });
+      }
+      leagueGroupId = league.id;
+      leagueMemberId = member.id;
+      creatorName = member.displayName; // keep the host's league identity
     }
 
     const sessionToken = generateSessionToken();
@@ -46,11 +74,13 @@ export async function POST(request: Request) {
             awayTeamLogo: awayTeamLogo || null,
             venue: venue || null,
             matchDate: new Date(matchDate),
+            leagueGroupId,
             players: {
               create: {
-                displayName: displayName.trim(),
+                displayName: creatorName,
                 sessionToken,
                 isCreator: true,
+                leagueMemberId,
               },
             },
           },
@@ -65,7 +95,6 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ code: room!.code, sessionToken });
 
     // Add to session map (preserves tokens for other rooms)
-    const cookieStore = cookies();
     const sessions = getSessionMap(cookieStore.get('livev_session')?.value);
     sessions[room!.code] = sessionToken;
 

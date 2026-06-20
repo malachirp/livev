@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { track } from '@/lib/track';
 
-export default function ShareButton({ roomCode, matchTitle }: { roomCode: string; matchTitle?: string }) {
+export default function ShareButton({ roomCode, matchTitle, url: urlOverride }: { roomCode: string; matchTitle?: string; url?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
     track('share_clicked', { roomCode });
-    const url = roomCode ? `${window.location.origin}/room/${roomCode}` : window.location.origin;
+    const url = urlOverride
+      ? `${window.location.origin}${urlOverride}`
+      : roomCode ? `${window.location.origin}/room/${roomCode}` : window.location.origin;
 
     if (navigator.share) {
       try {
