@@ -55,6 +55,23 @@ export async function POST(
       data: { leagueId: league.id, displayName: trimmed, memberToken, isAdmin: false },
     });
 
+    // Retroactively link any Players this person already has in league rooms.
+    // Matches on exact display name where leagueMemberId is still null.
+    const leagueRoomIds = await prisma.room.findMany({
+      where: { leagueGroupId: league.id },
+      select: { id: true },
+    });
+    if (leagueRoomIds.length > 0) {
+      await prisma.player.updateMany({
+        where: {
+          roomId: { in: leagueRoomIds.map(r => r.id) },
+          displayName: trimmed,
+          leagueMemberId: null,
+        },
+        data: { leagueMemberId: member.id },
+      });
+    }
+
     const response = NextResponse.json({ memberToken, memberId: member.id, alreadyJoined: false });
 
     const leagues = getLeagueMap(cookieValue);
