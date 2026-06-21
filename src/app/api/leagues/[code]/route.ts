@@ -15,7 +15,7 @@ export async function GET(
   try {
     const league = await prisma.league.findUnique({
       where: { code: params.code },
-      include: { members: { select: { id: true, memberToken: true } }, rooms: { select: { fixtureId: true, matchDate: true } } },
+      include: { members: { select: { id: true, memberToken: true, displayName: true } }, rooms: { select: { id: true, fixtureId: true, matchDate: true } } },
     });
 
     if (!league) {
@@ -42,8 +42,21 @@ export async function GET(
       });
     }
 
+    // Link any unlinked Players to their league members (catches players who
+    // joined a game room before joining the league).
+    if (league.rooms.length > 0) {
+      const roomIds = league.rooms.map(r => r.id);
+      await Promise.all(
+        league.members.map(m =>
+          prisma.player.updateMany({
+            where: { roomId: { in: roomIds }, displayName: m.displayName, leagueMemberId: null },
+            data: { leagueMemberId: m.id },
+          })
+        )
+      );
+    }
+
     // Refresh any rooms whose scores could still be moving so standings are current.
-    // refreshMatchDataIfStale is a no-op when the cache is fresh or the match is long finished.
     const fixtureIds = Array.from(new Set(league.rooms.map(r => r.fixtureId)));
     await Promise.all(fixtureIds.map(id => refreshMatchDataIfStale(id).catch(() => null)));
 
